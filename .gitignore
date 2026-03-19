@@ -9,13 +9,9 @@ data/issues.db*
 data/symphony.db
 data/local-config.json
 
-# Workflow registry (user-specific, contains private workflow configs)
+# Workflow directory - only sample/example files are tracked
+# All user workflows (including workflows.json registry) are local-only
 # Use data/workflow/sample-workflows.json as a reference to create your own
-data/workflow/workflows.json
-
-# Private/proprietary workflow templates - keep these out of public repos
-# Place your project-specific workflows here or in ~/.config/symphony/
-data/workflow/cvchatapp-implement.md
-data/workflow/cvchatapp-selfreview.md
-data/workflow/codereview.md
-data/workflow/engweb.md
+data/workflow/*
+!data/workflow/sample-*
+!data/workflow/example.md
