@@ -12,9 +12,6 @@ tracker:
     - Canceled
     - Duplicate
 
-polling:
-  interval_ms: 30000
-
 workspace:
   root: ~/symphony_workspaces
 
@@ -29,7 +26,6 @@ hooks:
 
 agent:
   max_concurrent_agents: 5
-  max_turns: 20
   max_retry_backoff_ms: 300000
   max_concurrent_agents_by_state:
     "in progress": 3

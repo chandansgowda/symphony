@@ -14,15 +14,11 @@
             "on_complete": "Done"
           }
         },
-        "polling": {
-          "interval_ms": 30000
-        },
         "workspace": {
           "root": "./workspaces"
         },
         "agent": {
-          "max_concurrent_agents": 3,
-          "max_turns": 20
+          "max_concurrent_agents": 3
         },
         "opencode": {
           "model": "claude-sonnet-4-20250514",

@@ -15,9 +15,6 @@ tracker:
     - Closed
     - Cancelled
 
-polling:
-  interval_ms: 30000             # How often to check for new issues
-
 workspace:
   root: ./workspaces             # Where agent workspaces are created
 
@@ -30,7 +27,6 @@ hooks:
 
 agent:
   max_concurrent_agents: 3       # Max parallel agents
-  max_turns: 20                  # Max turns per agent session
 
 opencode:
   model: claude-sonnet-4-20250514
