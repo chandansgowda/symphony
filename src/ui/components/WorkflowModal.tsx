@@ -11,6 +11,7 @@ interface WorkflowModalProps {
 type Tab = 'general' | 'configuration';
 
 export function WorkflowModal({ workflow, onClose, onSave }: WorkflowModalProps) {
+  const isPrivate = workflow?.isPrivate === true;
   const [activeTab, setActiveTab] = useState<Tab>('general');
   const [name, setName] = useState(workflow?.name || '');
   const [description, setDescription] = useState(workflow?.description || '');
@@ -50,7 +51,7 @@ export function WorkflowModal({ workflow, onClose, onSave }: WorkflowModalProps)
         name,
         description,
         promptTemplate,
-        isDefault,
+        isDefault: isPrivate ? false : isDefault,
         config,
         maxConcurrentAgents,
       };
@@ -86,8 +87,21 @@ export function WorkflowModal({ workflow, onClose, onSave }: WorkflowModalProps)
     }}>
       <div className="bg-white dark:bg-[#252525] rounded-lg shadow-xl w-full max-w-2xl flex flex-col max-h-[90vh] overflow-hidden">
         <div className="p-6 border-b border-gray-200 dark:border-[#3d3d3d] flex justify-between items-center bg-gray-50 dark:bg-[#2d2d2d]">
-          <h2 className="text-xl font-bold text-gray-800 dark:text-[#e0e0e0]">
+          <h2 className="text-xl font-bold text-gray-800 dark:text-[#e0e0e0] flex items-center gap-2">
             {workflow ? 'Edit Workflow' : 'New Workflow'}
+            {isPrivate && (
+              <span
+                className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full border"
+                style={{ color: 'var(--text-muted)', borderColor: 'var(--border-primary)', background: 'var(--bg-secondary)' }}
+                title="This workflow is stored in the private workflows directory and changes will be saved there"
+              >
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                  <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                </svg>
+                Private
+              </span>
+            )}
           </h2>
           <button onClick={onClose} className="text-gray-500 hover:text-gray-700 dark:text-[#808080] dark:hover:text-[#a0a0a0] text-2xl leading-none">&times;</button>
         </div>
@@ -154,18 +168,25 @@ export function WorkflowModal({ workflow, onClose, onSave }: WorkflowModalProps)
                   </p>
                 </div>
 
-                <div className="flex items-center">
-                  <input
-                    type="checkbox"
-                    id="isDefault"
-                    checked={isDefault}
-                    onChange={(e) => setIsDefault(e.currentTarget.checked)}
-                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 dark:border-[#3d3d3d] rounded"
-                  />
-                  <label htmlFor="isDefault" className="ml-2 block text-sm text-gray-900 dark:text-[#e0e0e0]">
-                    Set as default workflow
-                  </label>
-                </div>
+                {isPrivate ? (
+                  <div className="rounded-md px-3 py-2 text-sm border" style={{ color: 'var(--text-muted)', background: 'var(--bg-secondary)', borderColor: 'var(--border-primary)' }}>
+                    <span className="font-medium">Private workflow</span> — changes are saved to your private workflows directory.
+                    Private workflows cannot be set as the default.
+                  </div>
+                ) : (
+                  <div className="flex items-center">
+                    <input
+                      type="checkbox"
+                      id="isDefault"
+                      checked={isDefault}
+                      onChange={(e) => setIsDefault(e.currentTarget.checked)}
+                      className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 dark:border-[#3d3d3d] rounded"
+                    />
+                    <label htmlFor="isDefault" className="ml-2 block text-sm text-gray-900 dark:text-[#e0e0e0]">
+                      Set as default workflow
+                    </label>
+                  </div>
+                )}
               </div>
             )}
 
