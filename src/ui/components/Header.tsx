@@ -169,7 +169,7 @@ export function Header({ currentView, onViewChange, onAddCard, onOpenChat }: Hea
             </svg>
           </button>
         </div>
-        <div className="p-2">
+        <div className="mobile-nav-items">
           {['issues', 'archive', 'workflows', 'logs', 'settings'].map((view) => (
             <button
               key={view}
