@@ -7,17 +7,31 @@ import { api } from '../api.js';
 
 // Label color mapping for hotkeys 1-9, 0
 const LABEL_COLORS: Record<string, { name: string; bg: string; text: string }> = {
-  '1': { name: 'green', bg: '#d3f9d8', text: '#2b8a3e' },
-  '2': { name: 'yellow', bg: '#fff3bf', text: '#e67700' },
-  '3': { name: 'orange', bg: '#ffe8cc', text: '#d9480f' },
-  '4': { name: 'red', bg: '#ffe3e3', text: '#c92a2a' },
-  '5': { name: 'purple', bg: '#e5dbff', text: '#7048e8' },
-  '6': { name: 'blue', bg: '#d0ebff', text: '#1971c2' },
-  '7': { name: 'sky', bg: '#c5f6fa', text: '#0c8599' },
-  '8': { name: 'lime', bg: '#e9fac8', text: '#5c940d' },
-  '9': { name: 'pink', bg: '#ffdeeb', text: '#c2255c' },
-  '0': { name: 'black', bg: '#e9ecef', text: '#343a40' },
+  '1': { name: 'green', bg: '#2f9e44', text: '#ffffff' },
+  '2': { name: 'yellow', bg: '#f59f00', text: '#ffffff' },
+  '3': { name: 'orange', bg: '#e8590c', text: '#ffffff' },
+  '4': { name: 'red', bg: '#c92a2a', text: '#ffffff' },
+  '5': { name: 'purple', bg: '#7048e8', text: '#ffffff' },
+  '6': { name: 'blue', bg: '#1971c2', text: '#ffffff' },
+  '7': { name: 'sky', bg: '#0c8599', text: '#ffffff' },
+  '8': { name: 'lime', bg: '#5c940d', text: '#ffffff' },
+  '9': { name: 'pink', bg: '#c2255c', text: '#ffffff' },
+  '0': { name: 'black', bg: '#495057', text: '#ffffff' },
 };
+
+const LABEL_KEY_ORDER = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'];
+
+function sortLabels(labels: string[]): string[] {
+  const orderedNames = LABEL_KEY_ORDER.map((k) => LABEL_COLORS[k].name);
+  return [...labels].sort((a, b) => {
+    const ai = orderedNames.indexOf(a);
+    const bi = orderedNames.indexOf(b);
+    if (ai === -1 && bi === -1) return 0;
+    if (ai === -1) return 1;
+    if (bi === -1) return -1;
+    return ai - bi;
+  });
+}
 
 // Get color info for a label name
 function getLabelColor(labelName: string): { bg: string; text: string } | null {
@@ -163,7 +177,7 @@ export function KanbanCard({ issue, runningAgent, pendingInput, workflowBadgeMod
       
       {issue.labels && issue.labels.length > 0 && (
         <div class="flex flex-wrap gap-1 mb-2">
-          {issue.labels.map((label) => {
+          {sortLabels(issue.labels).map((label) => {
             const color = getLabelColor(label);
             return color ? (
               <span
