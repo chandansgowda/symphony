@@ -282,7 +282,7 @@ export function IssueModal({ issue, onClose, onSave }: IssueModalProps) {
         </div>
 
         {/* Main Content - Two Column Layout */}
-        <div className="issue-modal-body flex-1 min-h-0 flex overflow-hidden">
+        <div className={`issue-modal-body flex-1 min-h-0 flex overflow-hidden ${activeTab === 'activity' && isExistingIssue ? 'activity-tab-active' : ''}`}>
           {/* Left Column: Main Content Area */}
           <div className="issue-modal-main flex-1 min-w-0 flex flex-col overflow-hidden">
             {/* Tabs for existing issues */}
@@ -378,7 +378,7 @@ export function IssueModal({ issue, onClose, onSave }: IssueModalProps) {
                   </div>
 
                   {/* Comment Input - Trello-style */}
-                  <div className="border-t border-gray-200 dark:border-[#3d3d3d] bg-gray-50 dark:bg-[#2d2d2d] px-6 py-4">
+                  <div className="comment-input-area border-t border-gray-200 dark:border-[#3d3d3d] bg-gray-50 dark:bg-[#2d2d2d] px-6 py-4">
                     <div className="flex items-start gap-3">
                       <div className="w-8 h-8 rounded-full bg-green-100 text-green-600 flex items-center justify-center flex-shrink-0 text-xs font-medium">
                         H
@@ -390,7 +390,7 @@ export function IssueModal({ issue, onClose, onSave }: IssueModalProps) {
                           onInput={(e) => setNewComment(e.currentTarget.value)}
                           placeholder="Write a comment..."
                           rows={3}
-                          className="w-full px-3 py-2 border border-gray-300 dark:border-[#3d3d3d] rounded-lg resize-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm bg-white dark:bg-[#2d2d2d] dark:text-[#e0e0e0]"
+                          className="comment-textarea w-full px-3 py-2 border border-gray-300 dark:border-[#3d3d3d] rounded-lg resize-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm bg-white dark:bg-[#2d2d2d] dark:text-[#e0e0e0]"
                           onKeyDown={(e) => {
                             if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
                               e.preventDefault();
