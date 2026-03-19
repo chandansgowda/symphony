@@ -15,10 +15,13 @@ export function ChatPanel({ isOpen, onClose, onOpen }: ChatPanelProps) {
   const [currentAssistantMessage, setCurrentAssistantMessage] = useState('');
   const [chatSession, setChatSession] = useState<ChatSession | null>(null);
   const [inputValue, setInputValue] = useState('');
+  const [queuedCount, setQueuedCount] = useState(0);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const sseRef = useRef<ChatEventSourceController | null>(null);
+  const messageQueueRef = useRef<string[]>([]);
+  const isProcessingRef = useRef(false);
 
   const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -27,6 +30,45 @@ export function ChatPanel({ isOpen, onClose, onOpen }: ChatPanelProps) {
   useEffect(() => {
     scrollToBottom();
   }, [messages, currentAssistantMessage, scrollToBottom]);
+
+  const processSingleMessage = useCallback(async (text: string) => {
+    setIsGenerating(true);
+    setCurrentAssistantMessage('');
+
+    try {
+      const response = await api.sendChatMessage(text);
+      if (response?.message) {
+        setCurrentAssistantMessage('');
+        setMessages((prev) => {
+          const last = prev[prev.length - 1];
+          if (last?.role === 'assistant' && last.content === response.message) {
+            return prev;
+          }
+          return [...prev, { role: 'assistant', content: response.message }];
+        });
+        if (response.sessionId) {
+          setChatSession((prev) => ({ ...prev, sessionId: response.sessionId }));
+        }
+      }
+    } catch (err) {
+      console.error('Failed to send:', (err as Error).message);
+      setCurrentAssistantMessage('');
+    }
+  }, []);
+
+  const drainQueue = useCallback(async () => {
+    if (isProcessingRef.current) return;
+    isProcessingRef.current = true;
+
+    while (messageQueueRef.current.length > 0) {
+      const next = messageQueueRef.current.shift()!;
+      setQueuedCount(messageQueueRef.current.length);
+      await processSingleMessage(next);
+    }
+
+    isProcessingRef.current = false;
+    setIsGenerating(false);
+  }, [processSingleMessage]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -53,20 +95,23 @@ export function ChatPanel({ isOpen, onClose, onOpen }: ChatPanelProps) {
       },
       onMessageComplete: () => {
         setCurrentAssistantMessage((prev) => {
-          // Capture the message content before clearing to avoid race condition
           const completedMessage = prev;
           if (completedMessage) {
-            // Use functional update with captured value to avoid stale state
             setMessages((msgs) => [...msgs, { role: 'assistant', content: completedMessage }]);
           }
           return '';
         });
-        setIsGenerating(false);
+        if (messageQueueRef.current.length === 0) {
+          setIsGenerating(false);
+        }
       },
       onError: (error) => {
         console.error('Chat error:', error);
         setIsGenerating(false);
         setCurrentAssistantMessage('');
+        messageQueueRef.current = [];
+        setQueuedCount(0);
+        isProcessingRef.current = false;
       },
     });
 
@@ -76,41 +121,25 @@ export function ChatPanel({ isOpen, onClose, onOpen }: ChatPanelProps) {
     };
   }, [isOpen]);
 
-  const handleSend = async () => {
+  const handleSend = useCallback(() => {
     const text = inputValue.trim();
-    if (!text || isGenerating) return;
+    if (!text) return;
 
+    // Always show the user's message immediately
     setMessages((prev) => [...prev, { role: 'user', content: text }]);
     setInputValue('');
     if (textareaRef.current) textareaRef.current.style.height = 'auto';
 
-    setIsGenerating(true);
-    setCurrentAssistantMessage('');
-
-    try {
-      const response = await api.sendChatMessage(text);
-      if (response?.message) {
-        setCurrentAssistantMessage('');
-        setMessages((prev) => {
-          const last = prev[prev.length - 1];
-          if (last?.role === 'assistant' && last.content === response.message) {
-            return prev;
-          }
-          return [...prev, { role: 'assistant', content: response.message }];
-        });
-        if (response.sessionId) {
-          setChatSession((prev) => ({ ...prev, sessionId: response.sessionId }));
-        }
-      }
-    } catch (err) {
-      console.error('Failed to send:', (err as Error).message);
-      setCurrentAssistantMessage('');
-    } finally {
-      setIsGenerating(false);
-    }
-  };
+    messageQueueRef.current.push(text);
+    setQueuedCount(messageQueueRef.current.length);
+    drainQueue();
+  }, [inputValue, drainQueue]);
 
   const handleNewChat = async () => {
+    messageQueueRef.current = [];
+    setQueuedCount(0);
+    isProcessingRef.current = false;
+
     try {
       await api.resetChat();
       setMessages([]);
@@ -140,6 +169,8 @@ export function ChatPanel({ isOpen, onClose, onOpen }: ChatPanelProps) {
   const sessionLink = chatSession?.sessionId && chatSession?.workspacePath
     ? buildSessionUrl(chatSession.serverPort ?? 4096, chatSession.workspacePath, chatSession.sessionId)
     : null;
+
+  const isSendDisabled = !inputValue.trim();
 
   return (
     <>
@@ -282,6 +313,14 @@ export function ChatPanel({ isOpen, onClose, onOpen }: ChatPanelProps) {
               background: 'var(--bg-secondary)'
             }}
           >
+            {queuedCount > 0 && (
+              <div
+                className="text-xs mb-2 px-1"
+                style={{ color: 'var(--text-muted)' }}
+              >
+                {queuedCount} message{queuedCount > 1 ? 's' : ''} queued
+              </div>
+            )}
             <div className="flex gap-2 items-end">
               <textarea
                 ref={textareaRef}
@@ -303,17 +342,17 @@ export function ChatPanel({ isOpen, onClose, onOpen }: ChatPanelProps) {
               />
               <button
                 onClick={handleSend}
-                disabled={isGenerating || !inputValue.trim()}
+                disabled={isSendDisabled}
                 className={`p-2 rounded-lg transition-colors ${
-                  isGenerating || !inputValue.trim()
+                  isSendDisabled
                     ? 'cursor-not-allowed'
                     : 'bg-blue-600 hover:bg-blue-700 text-white'
                 }`}
-                style={isGenerating || !inputValue.trim() ? {
+                style={isSendDisabled ? {
                   background: 'var(--bg-tertiary)',
                   color: 'var(--text-muted)'
                 } : undefined}
-                title="Send"
+                title={isGenerating ? 'Queue message' : 'Send'}
               >
                 <svg
                   width="18"
