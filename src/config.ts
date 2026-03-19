@@ -41,8 +41,8 @@ export class ServiceConfig {
     this.config = config;
   }
 
-  get trackerKind(): 'linear' | 'local' | undefined {
-    return this.config.tracker?.kind;
+  get trackerKind(): 'linear' | 'local' {
+    return this.config.tracker?.kind ?? 'local';
   }
 
   get trackerEndpoint(): string {
@@ -213,9 +213,7 @@ export class ServiceConfig {
   validate(): ValidationResult {
     const errors: string[] = [];
 
-    if (!this.trackerKind) {
-      errors.push('tracker.kind is required (use "local" or "linear")');
-    } else if (this.trackerKind === 'linear') {
+    if (this.trackerKind === 'linear') {
       if (!this.trackerApiKey) {
         errors.push('tracker.api_key is required for Linear (or set LINEAR_API_KEY environment variable)');
       }

@@ -34,6 +34,18 @@ interface WorkflowsFile {
 
 async function loadFromWorkflowDir(workflowDir: string): Promise<{ promptTemplate: string; config: WorkflowConfig } | null> {
   const jsonPath = path.join(workflowDir, 'workflows.json');
+  const samplePath = path.join(workflowDir, 'sample-workflows.json');
+  
+  try {
+    await fs.access(jsonPath);
+  } catch {
+    try {
+      await fs.access(samplePath);
+      await fs.copyFile(samplePath, jsonPath);
+      log.info('Created workflows.json from sample-workflows.json', { path: jsonPath });
+    } catch {
+    }
+  }
   
   try {
     const content = await fs.readFile(jsonPath, 'utf-8');
