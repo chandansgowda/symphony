@@ -784,6 +784,7 @@ export class Orchestrator {
             totalTokens: 0,
             turnCount: 0,
           };
+          this.onIssueUpdated?.();
           // Persist session_id and workspace_path to issue for resumption on restart
           this.issueTracker.updateIssueSessionId(issue.id, event.sessionId).catch(err => {
             log.warn('Failed to persist session_id', { issueId: issue.id, error: (err as Error).message });
@@ -791,19 +792,31 @@ export class Orchestrator {
           this.issueTracker.updateIssueWorkspacePath(issue.id, workspacePath).catch(err => {
             log.warn('Failed to persist workspace_path', { issueId: issue.id, error: (err as Error).message });
           });
-          Promise.all([
-            this.workflowStore.getWorkflow(entry.workflowId),
-            this.workspaceManager.getGitWorktreeRoot(workspacePath),
-          ]).then(([workflow, worktreeRoot]) => {
+          // Create the session record immediately with worktreeRoot=null so the UI
+          // can show the session link right away, without waiting for the git worktree
+          // root lookup (which can take many seconds and was causing ~50s link delay).
+          this.workflowStore.getWorkflow(entry.workflowId).then(workflow => {
             const workflowName = workflow?.name ?? entry.workflowId;
+            const sessionId = event.sessionId!;
             this.issueTracker.createSession(
               issue.id,
-              event.sessionId!,
+              sessionId,
               entry.workflowId,
               workflowName,
               workspacePath,
-              worktreeRoot
-            ).catch(err => {
+              null
+            ).then(() => {
+              this.workspaceManager.getGitWorktreeRoot(workspacePath).then(worktreeRoot => {
+                if (worktreeRoot && 'updateSessionWorktreeRoot' in this.issueTracker) {
+                  const client = this.issueTracker as unknown as { updateSessionWorktreeRoot: (id: string, root: string) => Promise<void> };
+                  client.updateSessionWorktreeRoot(sessionId, worktreeRoot).catch((err: Error) => {
+                    log.warn('Failed to backfill worktree root', { issueId: issue.id, error: err.message });
+                  });
+                }
+              }).catch((err: Error) => {
+                log.warn('Failed to get git worktree root for backfill', { issueId: issue.id, error: err.message });
+              });
+            }).catch(err => {
               log.warn('Failed to create session record', { issueId: issue.id, error: (err as Error).message });
             });
           }).catch(err => {
