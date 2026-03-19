@@ -1,4 +1,4 @@
-import { Issue, LiveSession, AgentEvent, AgentEventType, InputRequest, OPENCODE_SERVER_PORT } from './types.js';
+import { Issue, LiveSession, AgentEvent, AgentEventType, InputRequest, DEFAULTS, OPENCODE_SERVER_PORT } from './types.js';
 import { ServiceConfig } from './config.js';
 import { renderPrompt, getDefaultPrompt, getContinuationPrompt } from './prompt-renderer.js';
 import { Logger } from './logger.js';
@@ -156,7 +156,7 @@ export class AgentRunner {
         sessionId: this.sessionId,
       });
 
-      const maxTurns = config.maxTurns;
+      const maxTurns = DEFAULTS.agent.maxTurns;
       let continueLoop = true;
 
       while (continueLoop && turnCount < maxTurns && !this.aborted) {

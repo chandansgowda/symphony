@@ -120,10 +120,6 @@ export const TrackerConfigSchema = z.object({
   gitlab_host: z.string().optional(),
 });
 
-export const PollingConfigSchema = z.object({
-  interval_ms: z.union([z.number(), z.string()]).optional(),
-});
-
 export const WorkspaceConfigSchema = z.object({
   root: z.string().optional(),
 });
@@ -138,7 +134,6 @@ export const HooksConfigSchema = z.object({
 
 export const AgentConfigSchema = z.object({
   max_concurrent_agents: z.union([z.number(), z.string()]).optional(),
-  max_turns: z.union([z.number(), z.string()]).optional(),
   max_retries: z.union([z.number(), z.string()]).optional(),
   max_retry_backoff_ms: z.union([z.number(), z.string()]).optional(),
   max_concurrent_agents_by_state: z.record(z.number()).optional(),
@@ -156,7 +151,6 @@ export const OpenCodeConfigSchema = z.object({
 
 export const WorkflowConfigSchema = z.object({
   tracker: TrackerConfigSchema.optional(),
-  polling: PollingConfigSchema.optional(),
   workspace: WorkspaceConfigSchema.optional(),
   hooks: HooksConfigSchema.optional(),
   agent: AgentConfigSchema.optional(),
@@ -165,7 +159,6 @@ export const WorkflowConfigSchema = z.object({
 
 export type WorkflowConfig = z.infer<typeof WorkflowConfigSchema>;
 export type TrackerConfig = z.infer<typeof TrackerConfigSchema>;
-export type PollingConfig = z.infer<typeof PollingConfigSchema>;
 export type WorkspaceConfig = z.infer<typeof WorkspaceConfigSchema>;
 export type HooksConfig = z.infer<typeof HooksConfigSchema>;
 export type AgentConfig = z.infer<typeof AgentConfigSchema>;
@@ -265,7 +258,6 @@ export interface RunningEntry {
 // ============================================================================
 
 export interface OrchestratorState {
-  pollIntervalMs: number;
   maxConcurrentAgents: number;
   running: Map<string, RunningEntry>;
   runningByWorkflow: Map<string, number>;

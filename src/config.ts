@@ -106,7 +106,7 @@ export class ServiceConfig {
   }
 
   get pollIntervalMs(): number {
-    return toNumber(this.config.polling?.interval_ms, DEFAULTS.polling.intervalMs);
+    return DEFAULTS.polling.intervalMs;
   }
 
   get workspaceRoot(): string {
@@ -143,10 +143,6 @@ export class ServiceConfig {
 
   get maxConcurrentAgents(): number {
     return toNumber(this.config.agent?.max_concurrent_agents, DEFAULTS.agent.maxConcurrentAgents);
-  }
-
-  get maxTurns(): number {
-    return toNumber(this.config.agent?.max_turns, DEFAULTS.agent.maxTurns);
   }
 
   get maxRetries(): number {

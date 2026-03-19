@@ -88,7 +88,6 @@ export class Orchestrator {
 
   private createInitialState(): OrchestratorState {
     return {
-      pollIntervalMs: this.config.pollIntervalMs,
       maxConcurrentAgents: this.config.maxConcurrentAgents,
       running: new Map(),
       runningByWorkflow: new Map(),
@@ -107,7 +106,6 @@ export class Orchestrator {
   updateConfig(config: ServiceConfig, promptTemplate: string): void {
     this.config = config;
     this.promptTemplate = promptTemplate;
-    this.state.pollIntervalMs = config.pollIntervalMs;
     this.state.maxConcurrentAgents = config.maxConcurrentAgents;
     this.issueTracker.updateConfig(config);
     this.workspaceManager.updateConfig(config);
@@ -383,7 +381,7 @@ export class Orchestrator {
 
     this.pollTimer = setTimeout(() => {
       this.tick();
-    }, this.state.pollIntervalMs);
+    }, DEFAULTS.polling.intervalMs);
   }
 
   private async reconcile(): Promise<void> {
