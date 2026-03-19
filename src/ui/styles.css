@@ -720,10 +720,7 @@ html.dark .typing-indicator { background: rgba(255,255,255,0.1); }
   
   /* Chat - full screen on mobile */
   .chat-fab { 
-    right: 16px; 
-    bottom: 16px; 
-    width: 56px; 
-    height: 56px;
+    display: none;
   }
   .chat-panel { 
     position: fixed;
@@ -834,10 +831,6 @@ html.dark .typing-indicator { background: rgba(255,255,255,0.1); }
     .mobile-nav-drawer {
       padding-top: env(safe-area-inset-top);
       padding-bottom: env(safe-area-inset-bottom);
-    }
-    .chat-fab {
-      right: max(16px, env(safe-area-inset-right));
-      bottom: max(16px, env(safe-area-inset-bottom));
     }
     .chat-panel {
       padding-top: env(safe-area-inset-top);
