@@ -15,7 +15,7 @@ import { Orchestrator } from './orchestrator.js';
 import { ServerManager, checkDockerAvailable } from './server-manager.js';
 import { Logger } from './logger.js';
 import { FileWatcher } from './file-watcher.js';
-import { WorkflowConfig } from './types.js';
+import { WorkflowConfig, OPENCODE_SERVER_PORT } from './types.js';
 import { initLogBuffer } from './log-buffer.js';
 import { ConnectorManager } from './connector-manager.js';
 import { KanbanConnector } from './kanban-connector.js';
@@ -266,7 +266,7 @@ async function main(): Promise<void> {
   ].filter((root, idx, arr) => arr.indexOf(root) === idx);
 
   const serverManager = new ServerManager({
-    port: config.serverPort ?? 4096,
+    port: OPENCODE_SERVER_PORT,
     safeExecute,
     workspaceRoots,
   });

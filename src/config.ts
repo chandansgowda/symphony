@@ -206,10 +206,6 @@ export class ServiceConfig {
     return this.config.opencode?.idle_prompt ?? DEFAULTS.opencode.idlePromptMessage;
   }
 
-  get serverPort(): number | undefined {
-    return this.config.server?.port;
-  }
-
   validate(): ValidationResult {
     const errors: string[] = [];
 

@@ -1,4 +1,4 @@
-import { Issue, LiveSession, AgentEvent, AgentEventType, InputRequest } from './types.js';
+import { Issue, LiveSession, AgentEvent, AgentEventType, InputRequest, OPENCODE_SERVER_PORT } from './types.js';
 import { ServiceConfig } from './config.js';
 import { renderPrompt, getDefaultPrompt, getContinuationPrompt } from './prompt-renderer.js';
 import { Logger } from './logger.js';
@@ -409,7 +409,7 @@ export class AgentRunner {
     const resolvedConfig: PlatformConfig = platformConfig ?? {
       type: 'opencode',
       opencode: {
-        server_port: config.serverPort,
+        server_port: OPENCODE_SERVER_PORT,
         model: config.opencodeModel,
         agent: config.opencodeAgent,
       },

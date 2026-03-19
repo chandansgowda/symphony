@@ -152,10 +152,6 @@ export const OpenCodeConfigSchema = z.object({
   idle_prompt: z.string().optional(),
 });
 
-export const ServerConfigSchema = z.object({
-  port: z.number().optional(),
-});
-
 export const WorkflowConfigSchema = z.object({
   tracker: TrackerConfigSchema.optional(),
   polling: PollingConfigSchema.optional(),
@@ -163,7 +159,6 @@ export const WorkflowConfigSchema = z.object({
   hooks: HooksConfigSchema.optional(),
   agent: AgentConfigSchema.optional(),
   opencode: OpenCodeConfigSchema.optional(),
-  server: ServerConfigSchema.optional(),
 }).passthrough();
 
 export type WorkflowConfig = z.infer<typeof WorkflowConfigSchema>;
@@ -407,6 +402,12 @@ export class WorkflowError extends Error {
 // ============================================================================
 // Service Configuration Defaults (Section 6.4)
 // ============================================================================
+
+// ============================================================================
+// OpenCode Server Configuration
+// ============================================================================
+
+export const OPENCODE_SERVER_PORT = parseInt(process.env.OPENCODE_SERVER_PORT ?? '4096', 10);
 
 export const DEFAULTS = {
   tracker: {
