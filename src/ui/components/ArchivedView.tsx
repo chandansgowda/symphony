@@ -58,7 +58,7 @@ export function ArchivedView({ onIssueRestored }: ArchivedViewProps) {
   });
 
   return (
-    <div className="p-6 max-w-6xl mx-auto h-full overflow-y-auto">
+    <div className="p-6 max-w-6xl mx-auto h-full overflow-y-auto w-full">
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-2xl font-bold text-gray-800 dark:text-[#e0e0e0] m-0">Archived Cards</h2>
         <div className="flex items-center gap-3">
