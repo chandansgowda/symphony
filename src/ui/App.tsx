@@ -11,7 +11,7 @@ import { ArchivedView } from './components/ArchivedView.js';
 import { IssueModal } from './components/IssueModal.js';
 import { WorkflowModal } from './components/WorkflowModal.js';
 import { ChatPanel } from './components/ChatPanel.js';
-import { VisualizerView } from './components/VisualizerView.js';
+
 import { updateUrlState } from './utils/helpers.js';
 
 export function App(): JSX.Element {
@@ -119,7 +119,6 @@ export function App(): JSX.Element {
 
         {state.currentView === 'archive' && <ArchivedView onIssueRestored={fetchIssues} />}
 
-        {state.currentView === 'visualizer' && <VisualizerView />}
       </main>
 
       {(selectedIssue || isCreatingNewIssue) && (

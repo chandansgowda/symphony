@@ -115,7 +115,7 @@ export interface SessionExport {
   updatedAt: string;
 }
 
-export type ViewType = 'issues' | 'workflows' | 'logs' | 'settings' | 'archive' | 'visualizer';
+export type ViewType = 'issues' | 'workflows' | 'logs' | 'settings' | 'archive';
 
 export type ThemeMode = 'system' | 'light' | 'dark';
 

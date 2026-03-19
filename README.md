@@ -14,6 +14,7 @@ Issue orchestration service that runs OpenCode AI agents per issue from Linear o
 
 ## Table of Contents
 
+- [Screenshots](#screenshots)
 - [Prerequisites](#prerequisites)
 - [Installation](#installation)
 - [Running Symphony](#running-symphony)
@@ -34,6 +35,20 @@ Issue orchestration service that runs OpenCode AI agents per issue from Linear o
 - [Troubleshooting](#troubleshooting)
 - [Architecture](#architecture)
 - [Development](#development)
+
+## Screenshots
+
+### Kanban Board
+![Kanban Board](screenshots/kanban-board.png)
+
+### Issue Detail
+![Issue Detail](screenshots/issue-detail.png)
+
+### Workflows
+![Workflows](screenshots/workflows.png)
+
+### Workflow Editor
+![Workflow Editor](screenshots/workflow-edit.png)
 
 ## Prerequisites
 
