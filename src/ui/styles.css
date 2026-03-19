@@ -118,7 +118,6 @@ html.dark {
    Base Styles
    ========================================================================== */
 
-* { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { height: 100%; }
 body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg-primary); color: var(--text-primary); transition: background-color 0.2s ease, color 0.2s ease; }
 
