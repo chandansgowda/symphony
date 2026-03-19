@@ -115,8 +115,6 @@ export const TrackerConfigSchema = z.object({
   api_key: z.string().optional(),
   project_slug: z.string().optional(),
   issues_path: z.string().optional(),
-  active_states: z.array(z.string()).optional(),
-  terminal_states: z.array(z.string()).optional(),
   auto_transition: AutoTransitionConfigSchema.optional(),
 });
 

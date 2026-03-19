@@ -9,8 +9,6 @@
         "tracker": {
           "kind": "local",
           "issues_path": "./data/issues.db",
-          "active_states": ["Todo", "In Progress"],
-          "terminal_states": ["Done", "Closed", "Cancelled"],
           "auto_transition": {
             "on_start": "In Progress",
             "on_complete": "Done"

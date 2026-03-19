@@ -36,8 +36,8 @@ export interface Comment {
 
 export interface WorkflowConfig {
   tracker?: {
-    active_states?: string[];
-    terminal_states?: string[];
+    kind?: string;
+    issues_path?: string;
   };
   workspace?: {
     root?: string;

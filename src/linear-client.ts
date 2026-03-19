@@ -10,7 +10,6 @@ const log = new Logger('linear');
 export class LinearIssueTrackerClient implements IssueTrackerClient {
   private client: LinearClient;
   private config: ServiceConfig;
-  private workflowStore: WorkflowStore | null = null;
   private projectId: string | null = null;
 
   constructor(config: ServiceConfig) {
@@ -30,9 +29,7 @@ export class LinearIssueTrackerClient implements IssueTrackerClient {
     }
   }
 
-  setWorkflowStore(store: WorkflowStore): void {
-    this.workflowStore = store;
-  }
+  setWorkflowStore(_store: WorkflowStore): void {}
 
   private async ensureProjectId(): Promise<string> {
     if (this.projectId) return this.projectId;
@@ -58,7 +55,7 @@ export class LinearIssueTrackerClient implements IssueTrackerClient {
 
   async fetchCandidateIssues(): Promise<Issue[]> {
     const projectId = await this.ensureProjectId();
-    const activeStates = await this.getAggregatedActiveStates();
+    const activeStates = this.getAggregatedActiveStates();
 
     log.debug('Fetching candidate issues', { projectId, activeStates });
 
@@ -91,28 +88,8 @@ export class LinearIssueTrackerClient implements IssueTrackerClient {
     return allIssues;
   }
 
-  private async getAggregatedActiveStates(): Promise<string[]> {
-    const activeStatesSet = new Set<string>();
-    
-    if (this.workflowStore) {
-      const workflows = await this.workflowStore.listWorkflows();
-      for (const workflow of workflows) {
-        const workflowActiveStates = workflow.config.tracker?.active_states;
-        if (workflowActiveStates && Array.isArray(workflowActiveStates)) {
-          for (const state of workflowActiveStates) {
-            activeStatesSet.add(state.toLowerCase());
-          }
-        }
-      }
-    }
-    
-    if (activeStatesSet.size === 0) {
-      for (const state of this.config.activeStates) {
-        activeStatesSet.add(state.toLowerCase());
-      }
-    }
-    
-    return Array.from(activeStatesSet);
+  private getAggregatedActiveStates(): string[] {
+    return this.config.activeStates.map(s => s.toLowerCase());
   }
 
   async fetchIssuesByIds(issueIds: string[]): Promise<Map<string, Issue>> {

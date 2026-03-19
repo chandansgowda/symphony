@@ -92,7 +92,6 @@ const SCHEMA = `
 
 export class LocalSqliteClient implements IssueTrackerClient {
   private config: ServiceConfig;
-  private workflowStore: WorkflowStore | null = null;
   private dbPath: string;
   private db: Database.Database | null = null;
   private lastLoggedState: string | null = null;
@@ -178,9 +177,7 @@ export class LocalSqliteClient implements IssueTrackerClient {
     }
   }
 
-  setWorkflowStore(store: WorkflowStore): void {
-    this.workflowStore = store;
-  }
+  setWorkflowStore(_store: WorkflowStore): void {}
 
   private loadIssue(row: Record<string, unknown>): Issue {
     const db = this.getDb();
@@ -265,7 +262,7 @@ export class LocalSqliteClient implements IssueTrackerClient {
 
   async fetchCandidateIssues(): Promise<Issue[]> {
     const allIssues = this.loadAllIssues(true);
-    const activeStates = await this.getAggregatedActiveStates();
+    const activeStates = this.getAggregatedActiveStates();
 
     const candidates = allIssues.filter(issue =>
       activeStates.includes(issue.state.toLowerCase())
@@ -286,28 +283,8 @@ export class LocalSqliteClient implements IssueTrackerClient {
     return candidates;
   }
 
-  private async getAggregatedActiveStates(): Promise<string[]> {
-    const activeStatesSet = new Set<string>();
-    
-    if (this.workflowStore) {
-      const workflows = await this.workflowStore.listWorkflows();
-      for (const workflow of workflows) {
-        const workflowActiveStates = workflow.config.tracker?.active_states;
-        if (workflowActiveStates && Array.isArray(workflowActiveStates)) {
-          for (const state of workflowActiveStates) {
-            activeStatesSet.add(state.toLowerCase());
-          }
-        }
-      }
-    }
-    
-    if (activeStatesSet.size === 0) {
-      for (const state of this.config.activeStates) {
-        activeStatesSet.add(state.toLowerCase());
-      }
-    }
-    
-    return Array.from(activeStatesSet);
+  private getAggregatedActiveStates(): string[] {
+    return this.config.activeStates.map(s => s.toLowerCase());
   }
 
   async fetchIssuesByIds(issueIds: string[]): Promise<Map<string, Issue>> {

@@ -78,11 +78,11 @@ export class ServiceConfig {
   }
 
   get activeStates(): string[] {
-    return this.config.tracker?.active_states ?? [...DEFAULTS.tracker.activeStates];
+    return [...DEFAULTS.tracker.activeStates];
   }
 
   get terminalStates(): string[] {
-    return this.config.tracker?.terminal_states ?? [...DEFAULTS.tracker.terminalStates];
+    return [...DEFAULTS.tracker.terminalStates];
   }
 
   get autoTransitionOnStart(): string | undefined {
