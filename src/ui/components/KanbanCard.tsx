@@ -82,6 +82,9 @@ export function KanbanCard({ issue, runningAgent, pendingInput, workflowBadgeMod
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.ctrlKey || e.metaKey || e.altKey) return;
       
+      const target = e.target as HTMLElement;
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) return;
+      
       if (e.key === 'c') {
         e.preventDefault();
         onArchive();
