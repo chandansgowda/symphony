@@ -67,12 +67,12 @@ export class WorkflowStore {
     return sanitized || `workflow-${Date.now()}`;
   }
 
-  private getTemplatePath(templateFile: string): string {
-    return path.join(this.workflowsDir, templateFile);
+  private getTemplatePath(templateFile: string, dir?: string): string {
+    return path.join(dir ?? this.workflowsDir, templateFile);
   }
 
-  private async readTemplate(templateFile: string): Promise<string> {
-    const templatePath = this.getTemplatePath(templateFile);
+  private async readTemplate(templateFile: string, dir?: string): Promise<string> {
+    const templatePath = this.getTemplatePath(templateFile, dir);
     try {
       return await fs.readFile(templatePath, 'utf-8');
     } catch (err) {
@@ -81,13 +81,13 @@ export class WorkflowStore {
     }
   }
 
-  private async writeTemplate(templateFile: string, content: string): Promise<void> {
-    const templatePath = this.getTemplatePath(templateFile);
+  private async writeTemplate(templateFile: string, content: string, dir?: string): Promise<void> {
+    const templatePath = this.getTemplatePath(templateFile, dir);
     await fs.writeFile(templatePath, content, 'utf-8');
   }
 
-  private async deleteTemplate(templateFile: string): Promise<void> {
-    const templatePath = this.getTemplatePath(templateFile);
+  private async deleteTemplate(templateFile: string, dir?: string): Promise<void> {
+    const templatePath = this.getTemplatePath(templateFile, dir);
     try {
       await fs.unlink(templatePath);
     } catch (err) {
@@ -114,6 +114,42 @@ export class WorkflowStore {
     await this.ensureWorkflowsDir();
     const data: WorkflowsFile = { workflows };
     await fs.writeFile(this.jsonPath, JSON.stringify(data, null, 2), 'utf-8');
+  }
+
+  private async loadPrivateWorkflowsJson(): Promise<LocalWorkflowData[]> {
+    if (!this.privateWorkflowsDir) return [];
+    const jsonPath = path.join(this.privateWorkflowsDir, 'workflows.json');
+    try {
+      const content = await fs.readFile(jsonPath, 'utf-8');
+      const data: WorkflowsFile = JSON.parse(content);
+      return data.workflows || [];
+    } catch (err) {
+      if ((err as NodeJS.ErrnoException).code === 'ENOENT') {
+        return [];
+      }
+      throw err;
+    }
+  }
+
+  private async savePrivateWorkflowsJson(workflows: LocalWorkflowData[]): Promise<void> {
+    if (!this.privateWorkflowsDir) throw new Error('Private workflows directory not configured');
+    await fs.mkdir(this.privateWorkflowsDir, { recursive: true });
+    const jsonPath = path.join(this.privateWorkflowsDir, 'workflows.json');
+    const data: WorkflowsFile = { workflows };
+    await fs.writeFile(jsonPath, JSON.stringify(data, null, 2), 'utf-8');
+  }
+
+  private resolvePrivateId(id: string, privateWorkflowsData: LocalWorkflowData[], regularWorkflowsData: LocalWorkflowData[]): string | null {
+    if (privateWorkflowsData.some(w => w.id === id)) {
+      return id;
+    }
+    if (id.startsWith('private-')) {
+      const unprefixed = id.slice('private-'.length);
+      if (privateWorkflowsData.some(w => w.id === unprefixed) && regularWorkflowsData.some(w => w.id === unprefixed)) {
+        return unprefixed;
+      }
+    }
+    return null;
   }
 
   private async loadWorkflowsFromDir(
@@ -293,20 +329,43 @@ export class WorkflowStore {
   async getWorkflowFresh(id: string): Promise<StoredWorkflow | null> {
     const workflowsData = await this.loadWorkflowsJson();
     const data = workflowsData.find(w => w.id === id);
-    if (!data) return null;
-    
-    const promptTemplate = await this.readTemplate(data.template_file);
+    if (data) {
+      const promptTemplate = await this.readTemplate(data.template_file);
+      return {
+        id: data.id,
+        name: data.name,
+        description: data.description ?? null,
+        promptTemplate,
+        config: data.config ?? {},
+        isDefault: data.is_default ?? false,
+        isPrivate: false,
+        maxConcurrentAgents: data.max_concurrent_agents ?? 1,
+        createdAt: data.created_at ? new Date(data.created_at) : new Date(),
+        updatedAt: data.updated_at ? new Date(data.updated_at) : new Date(),
+      };
+    }
+
+    if (!this.privateWorkflowsDir) return null;
+
+    const privateWorkflowsData = await this.loadPrivateWorkflowsJson();
+    const resolvedId = this.resolvePrivateId(id, privateWorkflowsData, workflowsData);
+    if (!resolvedId) return null;
+
+    const privateData = privateWorkflowsData.find(w => w.id === resolvedId);
+    if (!privateData) return null;
+
+    const promptTemplate = await this.readTemplate(privateData.template_file, this.privateWorkflowsDir);
     return {
-      id: data.id,
-      name: data.name,
-      description: data.description ?? null,
+      id,
+      name: privateData.name,
+      description: privateData.description ?? null,
       promptTemplate,
-      config: data.config ?? {},
-      isDefault: data.is_default ?? false,
-      isPrivate: false,
-      maxConcurrentAgents: data.max_concurrent_agents ?? 1,
-      createdAt: data.created_at ? new Date(data.created_at) : new Date(),
-      updatedAt: data.updated_at ? new Date(data.updated_at) : new Date(),
+      config: privateData.config ?? {},
+      isDefault: false,
+      isPrivate: true,
+      maxConcurrentAgents: privateData.max_concurrent_agents ?? 1,
+      createdAt: privateData.created_at ? new Date(privateData.created_at) : new Date(),
+      updatedAt: privateData.updated_at ? new Date(privateData.updated_at) : new Date(),
     };
   }
 
@@ -387,47 +446,86 @@ export class WorkflowStore {
     const workflowsData = await this.loadWorkflowsJson();
     const index = workflowsData.findIndex(w => w.id === id);
 
-    if (index === -1) {
-      return null;
-    }
+    if (index !== -1) {
+      const workflowData = workflowsData[index];
 
-    const workflowData = workflowsData[index];
-
-    if (updates.isDefault) {
-      for (const w of workflowsData) {
-        w.is_default = false;
+      if (updates.isDefault) {
+        for (const w of workflowsData) {
+          w.is_default = false;
+        }
       }
+
+      if (updates.name !== undefined) workflowData.name = updates.name;
+      if (updates.description !== undefined) workflowData.description = updates.description;
+      if (updates.config !== undefined) workflowData.config = updates.config;
+      if (updates.isDefault !== undefined) workflowData.is_default = updates.isDefault;
+      if (updates.maxConcurrentAgents !== undefined) workflowData.max_concurrent_agents = updates.maxConcurrentAgents;
+      workflowData.updated_at = new Date().toISOString();
+
+      if (updates.promptTemplate !== undefined) {
+        await this.writeTemplate(workflowData.template_file, updates.promptTemplate);
+      }
+
+      await this.saveWorkflowsJson(workflowsData);
+      this.cachedWorkflows = null;
+
+      const promptTemplate = updates.promptTemplate ?? await this.readTemplate(workflowData.template_file);
+
+      log.info('Updated workflow', { id, name: workflowData.name });
+
+      return {
+        id: workflowData.id,
+        name: workflowData.name,
+        description: workflowData.description ?? null,
+        promptTemplate,
+        config: workflowData.config ?? {},
+        isDefault: workflowData.is_default ?? false,
+        isPrivate: false,
+        maxConcurrentAgents: workflowData.max_concurrent_agents ?? 1,
+        createdAt: workflowData.created_at ? new Date(workflowData.created_at) : new Date(),
+        updatedAt: new Date(workflowData.updated_at!),
+      };
     }
 
-    if (updates.name !== undefined) workflowData.name = updates.name;
-    if (updates.description !== undefined) workflowData.description = updates.description;
-    if (updates.config !== undefined) workflowData.config = updates.config;
-    if (updates.isDefault !== undefined) workflowData.is_default = updates.isDefault;
-    if (updates.maxConcurrentAgents !== undefined) workflowData.max_concurrent_agents = updates.maxConcurrentAgents;
-    workflowData.updated_at = new Date().toISOString();
+    if (!this.privateWorkflowsDir) return null;
+
+    const privateWorkflowsData = await this.loadPrivateWorkflowsJson();
+    const resolvedId = this.resolvePrivateId(id, privateWorkflowsData, workflowsData);
+    if (!resolvedId) return null;
+
+    const privateIndex = privateWorkflowsData.findIndex(w => w.id === resolvedId);
+    if (privateIndex === -1) return null;
+
+    const privateWorkflowData = privateWorkflowsData[privateIndex];
+
+    if (updates.name !== undefined) privateWorkflowData.name = updates.name;
+    if (updates.description !== undefined) privateWorkflowData.description = updates.description;
+    if (updates.config !== undefined) privateWorkflowData.config = updates.config;
+    if (updates.maxConcurrentAgents !== undefined) privateWorkflowData.max_concurrent_agents = updates.maxConcurrentAgents;
+    privateWorkflowData.updated_at = new Date().toISOString();
 
     if (updates.promptTemplate !== undefined) {
-      await this.writeTemplate(workflowData.template_file, updates.promptTemplate);
+      await this.writeTemplate(privateWorkflowData.template_file, updates.promptTemplate, this.privateWorkflowsDir);
     }
 
-    await this.saveWorkflowsJson(workflowsData);
+    await this.savePrivateWorkflowsJson(privateWorkflowsData);
     this.cachedWorkflows = null;
 
-    const promptTemplate = updates.promptTemplate ?? await this.readTemplate(workflowData.template_file);
+    const promptTemplate = updates.promptTemplate ?? await this.readTemplate(privateWorkflowData.template_file, this.privateWorkflowsDir);
 
-    log.info('Updated workflow', { id, name: workflowData.name });
+    log.info('Updated private workflow', { id, resolvedId, name: privateWorkflowData.name });
 
     return {
-      id: workflowData.id,
-      name: workflowData.name,
-      description: workflowData.description ?? null,
+      id,
+      name: privateWorkflowData.name,
+      description: privateWorkflowData.description ?? null,
       promptTemplate,
-      config: workflowData.config ?? {},
-      isDefault: workflowData.is_default ?? false,
-      isPrivate: false,
-      maxConcurrentAgents: workflowData.max_concurrent_agents ?? 1,
-      createdAt: workflowData.created_at ? new Date(workflowData.created_at) : new Date(),
-      updatedAt: new Date(workflowData.updated_at!),
+      config: privateWorkflowData.config ?? {},
+      isDefault: false,
+      isPrivate: true,
+      maxConcurrentAgents: privateWorkflowData.max_concurrent_agents ?? 1,
+      createdAt: privateWorkflowData.created_at ? new Date(privateWorkflowData.created_at) : new Date(),
+      updatedAt: new Date(privateWorkflowData.updated_at!),
     };
   }
 
@@ -435,21 +533,36 @@ export class WorkflowStore {
     const workflowsData = await this.loadWorkflowsJson();
     const index = workflowsData.findIndex(w => w.id === id);
 
-    if (index === -1) {
-      return false;
+    if (index !== -1) {
+      const deleted = workflowsData.splice(index, 1)[0];
+
+      if (deleted.is_default && workflowsData.length > 0) {
+        workflowsData[0].is_default = true;
+      }
+
+      await this.deleteTemplate(deleted.template_file);
+      await this.saveWorkflowsJson(workflowsData);
+      this.cachedWorkflows = null;
+
+      log.info('Deleted workflow', { id, name: deleted.name });
+      return true;
     }
 
-    const deleted = workflowsData.splice(index, 1)[0];
+    if (!this.privateWorkflowsDir) return false;
 
-    if (deleted.is_default && workflowsData.length > 0) {
-      workflowsData[0].is_default = true;
-    }
+    const privateWorkflowsData = await this.loadPrivateWorkflowsJson();
+    const resolvedId = this.resolvePrivateId(id, privateWorkflowsData, workflowsData);
+    if (!resolvedId) return false;
 
-    await this.deleteTemplate(deleted.template_file);
-    await this.saveWorkflowsJson(workflowsData);
+    const privateIndex = privateWorkflowsData.findIndex(w => w.id === resolvedId);
+    if (privateIndex === -1) return false;
+
+    const deleted = privateWorkflowsData.splice(privateIndex, 1)[0];
+    await this.deleteTemplate(deleted.template_file, this.privateWorkflowsDir);
+    await this.savePrivateWorkflowsJson(privateWorkflowsData);
     this.cachedWorkflows = null;
 
-    log.info('Deleted workflow', { id, name: deleted.name });
+    log.info('Deleted private workflow', { id, resolvedId, name: deleted.name });
     return true;
   }
 
