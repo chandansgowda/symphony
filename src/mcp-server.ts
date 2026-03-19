@@ -170,7 +170,7 @@ const createIssueTool = {
       },
       model: {
         type: 'string',
-        description: 'OpenCode model to use for this issue (e.g., "anthropic/claude-sonnet-4"). Must be from the workflow\'s available models. If not specified, uses workflow default.',
+        description: 'OpenCode model to use for this issue. Accepts "primary" (workflow\'s default model), "secondary" (workflow\'s secondary model), or an explicit model name (e.g., "anthropic/claude-sonnet-4"). Must be from the workflow\'s available models. If not specified, uses workflow default.',
       },
     },
     required: ['title'],
@@ -214,7 +214,7 @@ const updateIssueTool = {
       },
       model: {
         type: 'string',
-        description: 'OpenCode model to use for this issue (e.g., "anthropic/claude-sonnet-4"). Must be from the workflow\'s available models.',
+        description: 'OpenCode model to use for this issue. Accepts "primary" (workflow\'s default model), "secondary" (workflow\'s secondary model), or an explicit model name (e.g., "anthropic/claude-sonnet-4"). Must be from the workflow\'s available models.',
       },
     },
     required: ['issue_id'],
@@ -323,6 +323,83 @@ const getWorkflowTool = {
   },
 };
 
+interface ModelResolutionResult {
+  resolvedModel: string | null;
+  error?: string;
+}
+
+interface WorkflowModelsResponse {
+  workflowId: string;
+  workflowName: string;
+  primaryModel: string | null;
+  secondaryModel: string | null;
+  availableModels: string[];
+}
+
+async function resolveModel(
+  model: string | undefined,
+  workflowId: string | undefined,
+): Promise<ModelResolutionResult> {
+  if (!model) {
+    return { resolvedModel: null };
+  }
+
+  const isToken = model === 'primary' || model === 'secondary';
+
+  if (workflowId || isToken) {
+    const id = workflowId || 'default';
+    try {
+      const response = await fetch(`${SYMPHONY_API_URL}/api/workflows/${encodeURIComponent(id)}/models`);
+
+      if (!response.ok) {
+        if (isToken) {
+          const errData = await response.json().catch(() => ({ error: response.statusText }));
+          return {
+            resolvedModel: null,
+            error: `Cannot resolve model token "${model}": ${errData.error ?? response.statusText}`,
+          };
+        }
+        return { resolvedModel: model };
+      }
+
+      const wfModels: WorkflowModelsResponse = await response.json();
+
+      if (model === 'primary') {
+        if (!wfModels.primaryModel) {
+          return {
+            resolvedModel: null,
+            error: `Workflow "${wfModels.workflowName}" has no primary model configured. Available models: ${wfModels.availableModels.join(', ') || 'none'}`,
+          };
+        }
+        return { resolvedModel: wfModels.primaryModel };
+      }
+
+      if (model === 'secondary') {
+        if (!wfModels.secondaryModel) {
+          return {
+            resolvedModel: null,
+            error: `Workflow "${wfModels.workflowName}" has no secondary model configured. Available models: ${wfModels.availableModels.join(', ') || 'none'}`,
+          };
+        }
+        return { resolvedModel: wfModels.secondaryModel };
+      }
+
+      if (wfModels.availableModels.length > 0 && !wfModels.availableModels.includes(model)) {
+        return {
+          resolvedModel: null,
+          error: `Model "${model}" is not available for workflow "${wfModels.workflowName}". Available models: ${wfModels.availableModels.join(', ')}`,
+        };
+      }
+
+      return { resolvedModel: model };
+    } catch (_err) {
+      return { resolvedModel: model };
+    }
+  }
+
+  return { resolvedModel: model };
+}
+
 // Tool handlers
 async function handleAddComment(input: AddCommentInput): Promise<{ success: boolean; comment_id?: string; error?: string }> {
   try {
@@ -374,6 +451,11 @@ async function handleUpdateState(input: UpdateStateInput): Promise<{ success: bo
 
 async function handleCreateIssue(input: CreateIssueInput): Promise<{ success: boolean; issue?: { id: string; identifier: string; title: string; state: string }; error?: string }> {
   try {
+    const modelResult = await resolveModel(input.model, input.workflow_id);
+    if (modelResult.error) {
+      return { success: false, error: modelResult.error };
+    }
+
     const response = await fetch(`${SYMPHONY_API_URL}/api/issues`, {
       method: 'POST',
       headers: {
@@ -386,7 +468,7 @@ async function handleCreateIssue(input: CreateIssueInput): Promise<{ success: bo
         priority: input.priority || 3,
         workflow_id: input.workflow_id,
         labels: input.labels,
-        model: input.model,
+        model: modelResult.resolvedModel,
       }),
     });
 
@@ -412,6 +494,11 @@ async function handleCreateIssue(input: CreateIssueInput): Promise<{ success: bo
 
 async function handleUpdateIssue(input: UpdateIssueInput): Promise<{ success: boolean; issue?: { id: string; title: string; state: string }; error?: string }> {
   try {
+    const modelResult = await resolveModel(input.model, input.workflow_id);
+    if (modelResult.error) {
+      return { success: false, error: modelResult.error };
+    }
+
     const body: Record<string, unknown> = {};
     if (input.title !== undefined) body.title = input.title;
     if (input.description !== undefined) body.description = input.description;
@@ -419,7 +506,7 @@ async function handleUpdateIssue(input: UpdateIssueInput): Promise<{ success: bo
     if (input.priority !== undefined) body.priority = input.priority;
     if (input.workflow_id !== undefined) body.workflow_id = input.workflow_id;
     if (input.labels !== undefined) body.labels = input.labels;
-    if (input.model !== undefined) body.model = input.model;
+    if (input.model !== undefined) body.model = modelResult.resolvedModel;
 
     const response = await fetch(`${SYMPHONY_API_URL}/api/issues/${input.issue_id}`, {
       method: 'PUT',

@@ -562,6 +562,50 @@ export class WebServer {
       }
     });
 
+    this.app.get('/api/workflows/:id/models', async (req, res) => {
+      try {
+        const { workflow, availableWorkflows } = await this.workflowStore.findWorkflowByNameOrId(req.params.id);
+        if (!workflow) {
+          res.status(404).json({
+            error: `Workflow not found: "${req.params.id}"`,
+            availableWorkflows,
+          });
+          return;
+        }
+
+        const opencode = workflow.config.opencode;
+        const modelConfig = opencode?.model;
+        const secondaryModel = opencode?.secondary_model ?? null;
+
+        let primaryModel: string | null = null;
+        const allModels: string[] = [];
+
+        if (Array.isArray(modelConfig)) {
+          primaryModel = modelConfig[0] ?? null;
+          for (const m of modelConfig) {
+            if (!allModels.includes(m)) allModels.push(m);
+          }
+        } else if (typeof modelConfig === 'string') {
+          primaryModel = modelConfig;
+          allModels.push(modelConfig);
+        }
+
+        if (secondaryModel && !allModels.includes(secondaryModel)) {
+          allModels.push(secondaryModel);
+        }
+
+        res.json({
+          workflowId: workflow.id,
+          workflowName: workflow.name,
+          primaryModel,
+          secondaryModel,
+          availableModels: allModels,
+        });
+      } catch (err) {
+        res.status(500).json({ error: (err as Error).message });
+      }
+    });
+
     this.app.get('/api/workflows/:id', async (req, res) => {
       try {
         const workflow = await this.workflowStore.getWorkflowFresh(req.params.id);
