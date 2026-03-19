@@ -105,7 +105,7 @@ export function ArchivedView({ onIssueRestored }: ArchivedViewProps) {
               >
                 <div className="flex justify-between items-start mb-2">
                   <span className="text-xs font-medium text-gray-500 dark:text-[#a0a0a0]">{issue.identifier}</span>
-                  <span className="text-xs text-gray-400 dark:text-[#808080]">{formatDate(issue.createdAt)}</span>
+                  <span className="text-xs text-gray-400 dark:text-[#808080]">{formatDate(issue.updatedAt ?? issue.createdAt)}</span>
                 </div>
                 
                 <h3 className="font-semibold text-gray-900 dark:text-[#e0e0e0] mb-2 leading-snug" title={issue.title}>

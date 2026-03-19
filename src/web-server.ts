@@ -284,9 +284,9 @@ export class WebServer {
         const archivedIssues = allIssues
           .filter(issue => issue.state === 'Archived')
           .sort((a, b) => {
-            // Sort by createdAt descending (newest first)
-            const aTime = a.createdAt?.getTime() ?? 0;
-            const bTime = b.createdAt?.getTime() ?? 0;
+            // Sort by updatedAt descending (most recently archived first)
+            const aTime = a.updatedAt?.getTime() ?? a.createdAt?.getTime() ?? 0;
+            const bTime = b.updatedAt?.getTime() ?? b.createdAt?.getTime() ?? 0;
             return bTime - aTime;
           });
         const issuesWithSessionsAndComments = await Promise.all(
