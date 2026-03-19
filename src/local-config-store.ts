@@ -9,6 +9,7 @@ export interface LocalConfig {
   privateWorkflowsEnabled?: boolean;
   workflowBadgeMode?: 'dot' | 'border';
   theme?: 'system' | 'light' | 'dark';
+  safeExecute?: boolean;
 }
 
 const DEFAULT_CONFIG: LocalConfig = {
@@ -16,6 +17,7 @@ const DEFAULT_CONFIG: LocalConfig = {
   privateWorkflowsEnabled: false,
   workflowBadgeMode: 'dot',
   theme: 'system',
+  safeExecute: false,
 };
 
 export class LocalConfigStore {
@@ -74,6 +76,7 @@ export class LocalConfigStore {
       privateWorkflowsEnabled: updated.privateWorkflowsEnabled,
       workflowBadgeMode: updated.workflowBadgeMode,
       theme: updated.theme,
+      safeExecute: updated.safeExecute,
     });
     
     return updated;

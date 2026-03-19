@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 import * as fs from 'node:fs/promises';
+import * as os from 'node:os';
 import * as path from 'node:path';
 import { WorkflowLoader } from './workflow-loader.js';
 import { ServiceConfig } from './config.js';
@@ -11,7 +12,7 @@ import { WorkspaceManager } from './workspace-manager.js';
 import { WorkflowStore } from './workflow-store.js';
 import { LocalConfigStore } from './local-config-store.js';
 import { Orchestrator } from './orchestrator.js';
-import { ServerManager } from './server-manager.js';
+import { ServerManager, checkDockerAvailable } from './server-manager.js';
 import { Logger } from './logger.js';
 import { FileWatcher } from './file-watcher.js';
 import { WorkflowConfig } from './types.js';
@@ -34,18 +35,6 @@ interface WorkflowsFile {
 
 async function loadFromWorkflowDir(workflowDir: string): Promise<{ promptTemplate: string; config: WorkflowConfig } | null> {
   const jsonPath = path.join(workflowDir, 'workflows.json');
-  const samplePath = path.join(workflowDir, 'sample-workflows.json');
-  
-  try {
-    await fs.access(jsonPath);
-  } catch {
-    try {
-      await fs.access(samplePath);
-      await fs.copyFile(samplePath, jsonPath);
-      log.info('Created workflows.json from sample-workflows.json', { path: jsonPath });
-    } catch {
-    }
-  }
   
   try {
     const content = await fs.readFile(jsonPath, 'utf-8');
@@ -254,8 +243,32 @@ async function main(): Promise<void> {
     await workflowStore.initializeFromWorkflowMd(workflow.promptTemplate, workflow.config);
   }
 
+  const localConfig = await localConfigStore.getConfig();
+  let safeExecute = localConfig.safeExecute ?? false;
+
+  if (safeExecute) {
+    const dockerError = checkDockerAvailable();
+    if (dockerError) {
+      log.warn(dockerError + ' Switching to non-Docker mode.');
+      safeExecute = false;
+    } else {
+      log.info('Safe execute mode enabled: opencode will run inside a Docker container');
+    }
+  }
+
+  const allWorkflows = await workflowStore.listWorkflows();
+  const workspaceRoots = [
+    config.workspaceRoot,
+    ...allWorkflows
+      .map(w => w.config?.workspace?.root)
+      .filter((root): root is string => typeof root === 'string' && root.trim() !== '')
+      .map(root => root.startsWith('~') ? path.join(os.homedir(), root.slice(1)) : root),
+  ].filter((root, idx, arr) => arr.indexOf(root) === idx);
+
   const serverManager = new ServerManager({
     port: config.serverPort ?? 4096,
+    safeExecute,
+    workspaceRoots,
   });
 
   try {

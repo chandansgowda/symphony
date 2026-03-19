@@ -653,9 +653,9 @@ export class WebServer {
 
     this.app.put('/api/settings', async (req, res) => {
       try {
-        const { privateWorkflowsDir, privateWorkflowsEnabled, workflowBadgeMode, theme } = req.body;
+        const { privateWorkflowsDir, privateWorkflowsEnabled, workflowBadgeMode, theme, safeExecute } = req.body;
         
-        const updates: { privateWorkflowsDir?: string | null; privateWorkflowsEnabled?: boolean; workflowBadgeMode?: 'dot' | 'border'; theme?: 'system' | 'light' | 'dark' } = {};
+        const updates: { privateWorkflowsDir?: string | null; privateWorkflowsEnabled?: boolean; workflowBadgeMode?: 'dot' | 'border'; theme?: 'system' | 'light' | 'dark'; safeExecute?: boolean } = {};
         
         if (privateWorkflowsDir !== undefined) {
           updates.privateWorkflowsDir = privateWorkflowsDir;
@@ -668,6 +668,9 @@ export class WebServer {
         }
         if (theme !== undefined) {
           updates.theme = theme;
+        }
+        if (safeExecute !== undefined) {
+          updates.safeExecute = safeExecute;
         }
         
         const config = await this.localConfigStore.updateConfig(updates);

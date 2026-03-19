@@ -1,4 +1,4 @@
-import { spawn, ChildProcess } from 'node:child_process';
+import { spawn, ChildProcess, execSync } from 'node:child_process';
 import { Logger } from './logger.js';
 
 const log = new Logger('server-manager');
@@ -9,6 +9,18 @@ export interface ServerManagerOptions {
   port: number;
   hostname?: string;
   startupTimeoutMs?: number;
+  safeExecute?: boolean;
+  /** All workspace roots to mount into the Docker container (deduped automatically). */
+  workspaceRoots?: string[];
+}
+
+export function checkDockerAvailable(): string | null {
+  try {
+    execSync('docker info', { stdio: 'ignore', timeout: 5000 });
+    return null;
+  } catch {
+    return 'Docker is not available or not running. Falling back to non-Docker mode.';
+  }
 }
 
 export class ServerManager {
@@ -18,11 +30,17 @@ export class ServerManager {
   private startupTimeoutMs: number;
   private ready = false;
   private externalServer = false;
+  private safeExecute: boolean;
+  private workspaceRoots: string[];
 
   constructor(options: ServerManagerOptions) {
     this.port = options.port;
     this.hostname = options.hostname ?? '127.0.0.1';
     this.startupTimeoutMs = options.startupTimeoutMs ?? 30000;
+    this.safeExecute = options.safeExecute ?? false;
+    this.workspaceRoots = options.workspaceRoots && options.workspaceRoots.length > 0
+      ? [...new Set(options.workspaceRoots)]
+      : [process.cwd()];
   }
 
   get baseUrl(): string {
@@ -51,7 +69,6 @@ export class ServerManager {
       return;
     }
 
-    // Check if an external server is already running on this port
     const existingServer = await this.checkExistingServer();
     if (existingServer) {
       log.info('Using existing opencode server', { port: this.port, hostname: this.hostname });
@@ -60,6 +77,14 @@ export class ServerManager {
       return;
     }
 
+    if (this.safeExecute) {
+      await this.startDockerServer();
+    } else {
+      await this.startLocalServer();
+    }
+  }
+
+  private async startLocalServer(): Promise<void> {
     log.info('Starting opencode server', { port: this.port, hostname: this.hostname });
 
     return new Promise((resolve, reject) => {
@@ -129,6 +154,86 @@ export class ServerManager {
     });
   }
 
+  private async startDockerServer(): Promise<void> {
+    log.info('Starting opencode server in Docker container (safe execute mode)', {
+      port: this.port,
+      hostname: this.hostname,
+      workspaceRoots: this.workspaceRoots,
+    });
+
+    return new Promise((resolve, reject) => {
+      const startTime = Date.now();
+      let resolved = false;
+
+      const timeoutId = setTimeout(() => {
+        if (!resolved) {
+          resolved = true;
+          this.stop();
+          reject(new Error(`opencode server (Docker) failed to start within ${this.startupTimeoutMs}ms`));
+        }
+      }, this.startupTimeoutMs);
+
+      const image = process.env.SYMPHONY_OPENCODE_DOCKER_IMAGE ?? 'opencodelabs/opencode:latest';
+      const volumeMounts = this.workspaceRoots.flatMap(root => ['-v', `${root}:${root}`]);
+      const args = [
+        'run',
+        '--rm',
+        '--network', 'host',
+        ...volumeMounts,
+        image,
+        'serve',
+        '--port', String(this.port),
+        '--hostname', this.hostname,
+      ];
+      const command = 'docker';
+
+      this.process = spawn(command, args, {
+        stdio: ['ignore', 'pipe', 'pipe'],
+        detached: false,
+      });
+
+      log.debug('Spawned opencode Docker container', { command, args });
+
+      const onData = (data: Buffer) => {
+        const line = data.toString();
+        log.debug('opencode (docker) output', { output: line.trim() });
+
+        if (!resolved && line.includes(SERVER_READY_PATTERN)) {
+          resolved = true;
+          clearTimeout(timeoutId);
+          this.ready = true;
+          log.info('opencode server (Docker) ready', { port: this.port, startupMs: Date.now() - startTime });
+          resolve();
+        }
+      };
+
+      this.process.stdout?.on('data', onData);
+      this.process.stderr?.on('data', onData);
+
+      this.process.on('error', (err) => {
+        log.error('Failed to start opencode Docker container', { error: err.message });
+        if (!resolved) {
+          resolved = true;
+          clearTimeout(timeoutId);
+          reject(err);
+        }
+        this.ready = false;
+      });
+
+      this.process.on('exit', (code, signal) => {
+        log.info('opencode Docker container exited', { code, signal });
+        this.ready = false;
+        this.process = null;
+
+        if (!resolved) {
+          resolved = true;
+          clearTimeout(timeoutId);
+          reject(new Error(`opencode Docker container exited during startup with code ${code}`));
+        }
+      });
+    });
+  }
+
   stop(): void {
     if (this.externalServer) {
       log.info('Not stopping external opencode server');
@@ -139,7 +244,7 @@ export class ServerManager {
 
     if (!this.process) return;
 
-    log.info('Stopping opencode server');
+    log.info('Stopping opencode server', { safeExecute: this.safeExecute });
 
     this.ready = false;
 

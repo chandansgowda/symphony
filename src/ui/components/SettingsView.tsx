@@ -66,6 +66,29 @@ export function SettingsView() {
     }
   };
 
+  const handleToggleSafeExecute = async (enabled: boolean) => {
+    try {
+      setSaving(true);
+      setError(null);
+      setSuccess(null);
+      const updated = await api.updateSettings({
+        ...settings,
+        safeExecute: enabled,
+      });
+      setSettings(updated);
+      setSuccess(
+        enabled
+          ? 'Safe Execute enabled. Restart Symphony to apply. If Docker is not running at startup, Symphony will fall back to non-Docker mode.'
+          : 'Safe Execute disabled. Restart Symphony to apply.'
+      );
+      setTimeout(() => setSuccess(null), 6000);
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="p-6 max-w-2xl mx-auto">
@@ -92,6 +115,44 @@ export function SettingsView() {
           {success}
         </div>
       )}
+
+      <div className="rounded-lg p-6 mb-6" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-primary)', boxShadow: 'var(--shadow-sm)' }}>
+        <h3 className="text-lg font-semibold mb-4" style={{ color: 'var(--text-primary)' }}>Safe Execute</h3>
+        <p className="text-sm mb-4" style={{ color: 'var(--text-secondary)' }}>
+          Run OpenCode inside a Docker container with access restricted to the workspace directory only.
+          This prevents agents from reading or writing files outside the designated workspace.
+          Requires Docker to be installed and running. If Docker is unavailable at startup, Symphony
+          falls back to non-Docker mode automatically.
+        </p>
+
+        <div className="flex items-center justify-between">
+          <label className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
+            Enable Safe Execute
+          </label>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={settings.safeExecute ?? false}
+            onClick={() => handleToggleSafeExecute(!settings.safeExecute)}
+            disabled={saving}
+            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
+              settings.safeExecute ? 'bg-blue-600' : ''
+            } ${saving ? 'opacity-50 cursor-not-allowed' : ''}`}
+            style={!settings.safeExecute ? { background: 'var(--bg-tertiary)' } : undefined}
+          >
+            <span
+              className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                settings.safeExecute ? 'translate-x-6' : 'translate-x-1'
+              }`}
+            />
+          </button>
+        </div>
+
+        <p className="mt-3 text-xs" style={{ color: 'var(--text-muted)' }}>
+          Changes take effect on the next Symphony restart.
+          Override the Docker image via the <code className="px-1 rounded" style={{ background: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }}>SYMPHONY_OPENCODE_DOCKER_IMAGE</code> environment variable.
+        </p>
+      </div>
 
       <div className="rounded-lg p-6" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-primary)', boxShadow: 'var(--shadow-sm)' }}>
         <h3 className="text-lg font-semibold mb-4" style={{ color: 'var(--text-primary)' }}>Private Workflows</h3>
