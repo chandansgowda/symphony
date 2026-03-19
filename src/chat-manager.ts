@@ -1,5 +1,5 @@
 import { createOpencodeClient, type OpencodeClient } from '@opencode-ai/sdk/v2';
-import { ServiceConfig } from './config.js';
+import { OPENCODE_SERVER_PORT } from './types.js';
 import { WorkflowStore } from './workflow-store.js';
 import { Logger } from './logger.js';
 import { Liquid } from 'liquidjs';
@@ -35,7 +35,6 @@ interface ModelConfig {
 export class ChatManager {
   private client: OpencodeClient | null = null;
   private sessionId: string | null = null;
-  private config: ServiceConfig;
   private workflowStore: WorkflowStore;
   private workspacePath: string;
   private messageHistory: ChatMessage[] = [];
@@ -44,11 +43,9 @@ export class ChatManager {
   private modelConfig: ModelConfig | undefined;
 
   constructor(options: {
-    config: ServiceConfig;
     workflowStore: WorkflowStore;
     dataDir: string;
   }) {
-    this.config = options.config;
     this.workflowStore = options.workflowStore;
     this.liquid = new Liquid();
     this.workspacePath = path.resolve(process.cwd());
@@ -76,7 +73,7 @@ export class ChatManager {
       return;
     }
 
-    const serverUrl = `http://127.0.0.1:${this.config.serverPort ?? 4096}`;
+    const serverUrl = `http://127.0.0.1:${OPENCODE_SERVER_PORT}`;
     log.info('Creating chat session', { serverUrl, workspacePath: this.workspacePath });
 
     this.client = createOpencodeClient({

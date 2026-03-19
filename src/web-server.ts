@@ -11,7 +11,7 @@ import { WorkflowStore } from './workflow-store.js';
 import { LocalConfigStore } from './local-config-store.js';
 import { getLogs, setLogStreamCallback, clearLogStreamCallback } from './log-buffer.js';
 import { Logger } from './logger.js';
-import { AgentLogEntry, InputRequest, StoredWorkflow, Issue, IssueSession, IssueComment, IssueLog } from './types.js';
+import { AgentLogEntry, InputRequest, StoredWorkflow, Issue, IssueSession, IssueComment, IssueLog, OPENCODE_SERVER_PORT } from './types.js';
 import { ChatManager, ChatEvent } from './chat-manager.js';
 
 const log = new Logger('web');
@@ -60,7 +60,6 @@ export class WebServer {
     this.issueTracker = options.issueTracker;
     this.app = express();
     this.chatManager = new ChatManager({
-      config: this.config,
       workflowStore: this.workflowStore,
       dataDir: this.config.dataDir,
     });
@@ -400,12 +399,11 @@ export class WebServer {
         const comments = await this.issueTracker.getComments(issueId);
         const logs = await this.issueTracker.getLogs(issueId);
 
-        const serverPort = this.config.serverPort ?? 4096;
         const sessionHistories = new Map<string, Array<{ role: string; text: string; timestamp: number }>>();
         for (const session of sessions) {
           try {
             const client = createOpencodeClient({
-              baseUrl: `http://127.0.0.1:${serverPort}`,
+              baseUrl: `http://127.0.0.1:${OPENCODE_SERVER_PORT}`,
               directory: session.workspacePath ?? undefined,
             });
             const result = await client.session.messages({
@@ -747,7 +745,7 @@ export class WebServer {
       res.json({ 
         sessionId,
         workspacePath,
-        serverPort: this.config.serverPort ?? 4096,
+        serverPort: OPENCODE_SERVER_PORT,
       });
     });
 
@@ -1010,7 +1008,7 @@ export class WebServer {
 </head>
 <body>
   <div id="app"></div>
-  <script>window.opencodePort = ${this.config.serverPort ?? 4096};</script>
+  <script>window.opencodePort = ${OPENCODE_SERVER_PORT};</script>
   <script type="module" src="/ui/bundle.js"></script>
 </body>
 </html>`;

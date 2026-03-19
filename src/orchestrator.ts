@@ -306,7 +306,6 @@ export class Orchestrator {
         platformConfig = {
           type: 'opencode',
           opencode: {
-            server_port: this.config.serverPort,
             model: selectedModel,
             agent: workflowOpencode.agent ?? this.config.opencodeAgent,
           },
@@ -886,7 +885,6 @@ export class Orchestrator {
             platformConfig = {
               type: 'opencode',
               opencode: {
-                server_port: this.config.serverPort,
                 model: selectedModel,
                 agent: workflowOpencode.agent ?? this.config.opencodeAgent,
               },

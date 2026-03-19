@@ -11,6 +11,7 @@ import {
   PlatformConfig,
 } from './types.js';
 import { Logger } from '../logger.js';
+import { OPENCODE_SERVER_PORT } from '../types.js';
 
 const log = new Logger('opencode-platform');
 
@@ -36,7 +37,7 @@ export class OpenCodePlatform implements Platform {
   private defaultAgent?: string;
 
   constructor(config: PlatformConfig) {
-    this.serverPort = config.opencode?.server_port ?? 4096;
+    this.serverPort = config.opencode?.server_port ?? OPENCODE_SERVER_PORT;
     
     // Parse model string into providerID/modelID format
     // Format: "provider/model" (e.g., "anthropic/claude-sonnet-4-20250514")
