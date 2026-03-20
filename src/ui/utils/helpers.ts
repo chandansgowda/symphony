@@ -4,8 +4,28 @@ export function escapeHtml(text: string): string {
   return div.innerHTML;
 }
 
-export function formatDate(dateValue: string | number): string {
-  const date = typeof dateValue === 'number' ? new Date(dateValue * 1000) : new Date(dateValue);
+function parseDateValue(dateValue: string | number | null | undefined): Date | null {
+  if (dateValue == null) return null;
+  let date: Date;
+  if (typeof dateValue === 'number') {
+    // Epoch seconds: values under 1e10 are seconds, above are milliseconds
+    date = dateValue < 1e10 ? new Date(dateValue * 1000) : new Date(dateValue);
+  } else {
+    // ISO string or numeric string (epoch seconds as string)
+    const numeric = Number(dateValue);
+    if (!isNaN(numeric) && dateValue.trim() !== '') {
+      date = numeric < 1e10 ? new Date(numeric * 1000) : new Date(numeric);
+    } else {
+      date = new Date(dateValue);
+    }
+  }
+  return isNaN(date.getTime()) ? null : date;
+}
+
+export function formatDate(dateValue: string | number | null | undefined): string {
+  const date = parseDateValue(dateValue);
+  if (!date) return '—';
+
   const now = new Date();
   const diff = now.getTime() - date.getTime();
   const days = Math.floor(diff / (1000 * 60 * 60 * 24));
@@ -21,8 +41,10 @@ export function formatDate(dateValue: string | number): string {
   }
 }
 
-export function formatRelativeTime(dateStr: string): string {
-  const date = new Date(dateStr);
+export function formatRelativeTime(dateValue: string | number | null | undefined): string {
+  const date = parseDateValue(dateValue);
+  if (!date) return '—';
+
   const now = new Date();
   const diffMs = now.getTime() - date.getTime();
   const diffMins = Math.floor(diffMs / 60000);
