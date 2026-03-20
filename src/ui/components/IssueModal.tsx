@@ -433,30 +433,31 @@ export function IssueModal({ issue, onClose, onSave }: IssueModalProps) {
               {(activeTab === 'details' || !isExistingIssue) && (
                 <div className="h-full overflow-y-auto p-6">
                   <form id="issue-form" onSubmit={handleSubmit} className="space-y-5 max-w-2xl">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-[#a0a0a0] mb-1.5">Identifier</label>
-                        <div className="flex gap-2">
-                          <input
-                            type="text"
-                            value={identifier}
-                            onInput={(e) => setIdentifier(e.currentTarget.value)}
-                            className="flex-1 px-3 py-2 border border-gray-300 dark:border-[#3d3d3d] rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm bg-white dark:bg-[#2d2d2d] dark:text-[#e0e0e0]"
-                            required
-                          />
-                          {!isExistingIssue && (
-                            <button
-                              type="button"
-                              onClick={generateId}
-                              className="px-3 py-2 bg-gray-100 dark:bg-[#3d3d3d] text-gray-600 dark:text-[#a0a0a0] rounded-md hover:bg-gray-200 dark:hover:bg-[#4d4d4d] text-sm"
-                              title="Generate new identifier"
-                            >
-                              ↻
-                            </button>
-                          )}
+                    {isExistingIssue && (
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <div className="text-xs font-medium text-gray-500 dark:text-[#808080] uppercase tracking-wide mb-1">Identifier</div>
+                          <div className="text-sm text-gray-700 dark:text-[#a0a0a0] font-mono px-3 py-2">
+                            {identifier}
+                          </div>
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 dark:text-[#a0a0a0] mb-1.5">State</label>
+                          <select
+                            value={state}
+                            onChange={(e) => setState(e.currentTarget.value)}
+                            className="w-full px-3 py-2 border border-gray-300 dark:border-[#3d3d3d] rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm bg-white dark:bg-[#2d2d2d] dark:text-[#e0e0e0]"
+                          >
+                            {KANBAN_COLUMNS.map(col => (
+                              <option key={col} value={col}>{col}</option>
+                            ))}
+                          </select>
                         </div>
                       </div>
+                    )}
 
+                    {!isExistingIssue && (
                       <div>
                         <label className="block text-sm font-medium text-gray-700 dark:text-[#a0a0a0] mb-1.5">State</label>
                         <select
@@ -469,7 +470,7 @@ export function IssueModal({ issue, onClose, onSave }: IssueModalProps) {
                           ))}
                         </select>
                       </div>
-                    </div>
+                    )}
 
                     <div>
                       <label className="block text-sm font-medium text-gray-700 dark:text-[#a0a0a0] mb-1.5">Workflow</label>
