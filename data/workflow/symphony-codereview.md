@@ -124,11 +124,11 @@ Review the diff against these criteria:
 
 **IF NO MAJOR ISSUES FOUND:**
 
-1. Approve and merge:
+1. Approve and merge (with source branch deletion):
    ```
    gh pr review <PR_NUMBER> --approve
-    gh pr merge <PR_NUMBER> --merge --delete-branch
-    ```
+   gh pr merge <PR_NUMBER> --merge --delete-branch
+   ```
 
 2. Pull latest main to keep local repository updated:
    ```
@@ -161,6 +161,7 @@ Review the diff against these criteria:
    - <any minor observations>
 
    MR has been automatically merged to main.
+   Source branch has been deleted.
    ```
 
 5. Clean up the worktree if it exists:
@@ -168,7 +169,7 @@ Review the diff against these criteria:
    cd ~/workspace/personal/symphony
    git worktree list
    # If worktree exists for this branch, remove it
-   git worktree remove ~/workspace/symphony-worktrees/<branch-name> --force 2>/dev/null || true
+   git worktree remove /tmp/symphony-{{ issue.identifier | downcase }} --force 2>/dev/null || true
    ```
 
 6. **FINAL ACTION**: Use `symphony_handover` with `new_state: "Done"` to complete the issue
