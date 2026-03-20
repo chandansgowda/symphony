@@ -1,0 +1,69 @@
+{
+  "$schema": "https://raw.githubusercontent.com/code-yeongyu/oh-my-openagent/dev/assets/oh-my-opencode.schema.json",
+  "git_master": {
+    "commit_footer": false,
+    "include_co_authored_by": false,
+    "git_env_prefix": "GIT_MASTER=1"
+  },
+  "agents": {
+    "sisyphus": {
+      "model": "azure-foundry-claude/claude-opus-4-5"
+    },
+    "hephaestus": {
+      "model": "azure-foundry-claude/claude-opus-4-6"
+    },
+    "oracle": {
+      "model": "azure-foundry-claude/claude-opus-4-6"
+    },
+    "librarian": {
+      "model": "azure-foundry-claude/claude-sonnet-4-6"
+    },
+    "explore": {
+      "model": "azure-foundry-claude/claude-sonnet-4-5"
+    },
+    "multimodal-looker": {
+      "model": "azure-foundry-claude/claude-sonnet-4-6"
+    },
+    "prometheus": {
+      "model": "azure-foundry-claude/claude-opus-4-6"
+    },
+    "metis": {
+      "model": "azure-foundry-claude/claude-opus-4-5"
+    },
+    "momus": {
+      "model": "azure-foundry-claude/claude-opus-4-6"
+    },
+    "atlas": {
+      "model": "azure-foundry-claude/claude-sonnet-4-6"
+    },
+    "sisyphus-junior": {
+      "model": "azure-foundry-claude/claude-sonnet-4-6"
+    }
+  },
+  "categories": {
+    "visual-engineering": {
+      "model": "azure-foundry-claude/claude-opus-4-6"
+    },
+    "ultrabrain": {
+      "model": "azure-foundry-claude/claude-opus-4-6"
+    },
+    "deep": {
+      "model": "azure-foundry-claude/claude-opus-4-6"
+    },
+    "artistry": {
+      "model": "azure-foundry-claude/claude-opus-4-5"
+    },
+    "quick": {
+      "model": "azure-foundry-claude/claude-sonnet-4-5"
+    },
+    "unspecified-low": {
+      "model": "azure-foundry-claude/claude-sonnet-4-5"
+    },
+    "unspecified-high": {
+      "model": "azure-foundry-claude/claude-opus-4-5"
+    },
+    "writing": {
+      "model": "azure-foundry-claude/claude-sonnet-4-6"
+    }
+  }
+}
