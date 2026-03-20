@@ -79,10 +79,16 @@ export function Header({ currentView, onViewChange, onAddCard, onOpenChat }: Hea
   return (
     <>
       <header className="header-bar h-14 flex items-center px-4 justify-between sticky top-0 z-10" style={{ background: 'var(--bg-secondary)', borderBottom: '1px solid var(--border-primary)' }}>
-        <div className="flex items-center gap-2">
+        <button
+          className="flex items-center gap-2 rounded-lg transition-colors"
+          style={{ background: 'transparent', padding: '4px 8px', cursor: 'pointer' }}
+          onClick={() => onViewChange('issues')}
+          aria-label="Go to issues board"
+          title="Go to issues board"
+        >
           <span className="text-xl">🎵</span>
           <h1 className="font-semibold text-lg" style={{ color: 'var(--text-primary)' }}>Symphony</h1>
-        </div>
+        </button>
 
         {/* Desktop navigation */}
         <nav className="header-nav hidden md:flex p-1 rounded-lg" style={{ background: 'var(--bg-tertiary)' }}>
