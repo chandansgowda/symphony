@@ -123,7 +123,7 @@ export type ThemeMode = 'system' | 'light' | 'dark';
 export interface LocalSettings {
   privateWorkflowsDir?: string | null;
   privateWorkflowsEnabled?: boolean;
-  workflowBadgeMode?: 'dot' | 'border';
+  workflowBadgeMode?: 'border';
   theme?: ThemeMode;
   safeExecute?: boolean;
   workflowsRootDir?: string | null;
@@ -147,5 +147,5 @@ export interface AppState {
   chatSession: ChatSession | null;
   isChatOpen: boolean;
   isGenerating: boolean;
-  workflowBadgeMode: 'dot' | 'border';
+  workflowBadgeMode: 'border';
 }
