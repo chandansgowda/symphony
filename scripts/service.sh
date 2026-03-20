@@ -210,6 +210,15 @@ cmd_restart() {
   wait "$candidate_pid" 2>/dev/null || true
   rm -f "${SYMPHONY_LOG}.candidate"
 
+  local opencode_port=4096
+  local opencode_pids
+  opencode_pids=$(lsof -ti:"$opencode_port" 2>/dev/null || true)
+  if [[ -n "$opencode_pids" ]]; then
+    log "Cleaning up orphaned opencode server on port $opencode_port"
+    echo "$opencode_pids" | xargs kill -KILL 2>/dev/null || true
+    sleep 1
+  fi
+
   if [[ "$candidate_healthy" == false ]]; then
     log "Health check timed out after ${HEALTH_TIMEOUT}s — keeping old process"
     die "Restart aborted: new version failed health check"
