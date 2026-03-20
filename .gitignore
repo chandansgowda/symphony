@@ -16,6 +16,8 @@ data/local-config.json
 data/workflow/*
 !data/workflow/sample-*
 !data/workflow/example.md
+!data/workflow/symphony-codereview.md
+!data/workflow/symphony-updates.md
 
 # Agent workspaces
 rotten-moth/
