@@ -1096,6 +1096,7 @@ export class Orchestrator {
 
     if (sessionId) {
       await this.issueTracker.deactivateSession(sessionId);
+      await this.issueTracker.updateIssueSessionId(issue.id, null);
     }
 
     if (result.success) {
