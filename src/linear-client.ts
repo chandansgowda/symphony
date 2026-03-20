@@ -164,8 +164,8 @@ export class LinearIssueTrackerClient implements IssueTrackerClient {
       sessionId: null,
       workspacePath: null,
       model: null,
-      createdAt: linearIssue.createdAt ?? null,
-      updatedAt: linearIssue.updatedAt ?? null,
+      created: linearIssue.createdAt ? Math.floor(new Date(linearIssue.createdAt).getTime() / 1000) : null,
+      lastModified: linearIssue.updatedAt ? Math.floor(new Date(linearIssue.updatedAt).getTime() / 1000) : null,
     };
   }
 

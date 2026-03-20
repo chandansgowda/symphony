@@ -16,8 +16,8 @@ export interface Issue {
   title: string;
   description?: string;
   state: string;
-  createdAt: string;
-  updatedAt: string;
+  created: number;
+  lastModified: number;
   workflowId?: string;
   model?: string | null;
   sessionId?: string;

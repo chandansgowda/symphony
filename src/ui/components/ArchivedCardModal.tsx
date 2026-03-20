@@ -125,11 +125,11 @@ export function ArchivedCardModal({ issue, onClose, onRestore }: ArchivedCardMod
                 <div className="grid grid-cols-2 gap-4 pt-4 border-t border-gray-100 dark:border-[#3d3d3d]">
                   <div>
                     <div className="text-xs font-medium text-gray-500 dark:text-[#808080] uppercase tracking-wide mb-1">Created</div>
-                    <div className="text-sm text-gray-700 dark:text-[#c0c0c0]">{formatDate(issue.createdAt)}</div>
+                    <div className="text-sm text-gray-700 dark:text-[#c0c0c0]">{formatDate(issue.created)}</div>
                   </div>
                   <div>
                     <div className="text-xs font-medium text-gray-500 dark:text-[#808080] uppercase tracking-wide mb-1">Updated</div>
-                    <div className="text-sm text-gray-700 dark:text-[#c0c0c0]">{formatDate(issue.updatedAt)}</div>
+                    <div className="text-sm text-gray-700 dark:text-[#c0c0c0]">{formatDate(issue.lastModified)}</div>
                   </div>
                 </div>
               </div>

@@ -593,11 +593,11 @@ export function IssueModal({ issue, onClose, onSave }: IssueModalProps) {
                   </div>
                 </div>
                 
-                {issue.createdAt && (
+                {issue.created && (
                   <div>
                     <div className="text-xs font-medium text-gray-500 dark:text-[#808080] uppercase tracking-wide mb-1">Created</div>
                     <div className="text-sm text-gray-700 dark:text-[#a0a0a0]">
-                      {new Date(issue.createdAt).toLocaleDateString()}
+                      {new Date(issue.created * 1000).toLocaleDateString()}
                     </div>
                   </div>
                 )}
