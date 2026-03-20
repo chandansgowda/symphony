@@ -48,7 +48,9 @@ function serializeAgentLogEntry(entry: AgentLogEntry): {
     content: entry.message,
     timestamp: entry.timestamp instanceof Date
       ? entry.timestamp.toISOString()
-      : String(entry.timestamp),
+      : typeof entry.timestamp === 'number'
+        ? new Date(entry.timestamp < 1e10 ? entry.timestamp * 1000 : entry.timestamp).toISOString()
+        : String(entry.timestamp),
     metadata: entry.details as Record<string, unknown> | undefined,
   };
 }
