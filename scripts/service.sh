@@ -156,37 +156,48 @@ cmd_restart() {
   old_pid=$(get_pid 2>/dev/null || echo "")
 
   if [[ "$dev_mode" == false ]]; then
-    # Build first, validate before switching
     log "Building new version..."
     if ! build_prod; then
       die "Build failed — keeping current process running"
     fi
   fi
 
-  # Start new process on a temporary port to validate health
-  local tmp_port=$(( SYMPHONY_PORT + 1000 ))
-  log "Starting candidate process on port $tmp_port for health validation..."
+  local tmp_port=$(( SYMPHONY_PORT - 1 ))
+
+  # Kill any leftover process on the test port from a previous interrupted restart
+  local stale_pids
+  stale_pids=$(lsof -ti:"$tmp_port" 2>/dev/null || true)
+  if [[ -n "$stale_pids" ]]; then
+    log "Cleaning up stale processes on test port $tmp_port"
+    echo "$stale_pids" | xargs kill -KILL 2>/dev/null || true
+    sleep 1
+  fi
+
+  log "Starting on test port $tmp_port to validate it works..."
 
   if [[ "$dev_mode" == true ]]; then
-    SYMPHONY_PORT="$tmp_port" nohup npx tsx src/cli.ts \
+    SYMPHONY_PORT="$tmp_port" npx tsx src/cli.ts \
       --port "$tmp_port" --no-web \
       >> "${SYMPHONY_LOG}.candidate" 2>&1 &
   else
-    SYMPHONY_PORT="$tmp_port" nohup node dist/cli.js \
+    SYMPHONY_PORT="$tmp_port" node dist/cli.js \
       --port "$tmp_port" --no-web \
       >> "${SYMPHONY_LOG}.candidate" 2>&1 &
   fi
 
   local candidate_pid=$!
-  log "Candidate process started (PID $candidate_pid)"
 
-  # Wait for candidate to pass health check
   local candidate_health_url="http://localhost:${tmp_port}/api/health"
   local elapsed=0
   local candidate_healthy=false
 
-  log "Waiting for candidate health check at $candidate_health_url..."
   while [[ $elapsed -lt $HEALTH_TIMEOUT ]]; do
+    if ! kill -0 "$candidate_pid" 2>/dev/null; then
+      log "Process crashed during startup. Logs:"
+      cat "${SYMPHONY_LOG}.candidate" 2>/dev/null || true
+      rm -f "${SYMPHONY_LOG}.candidate"
+      die "Restart aborted: process exited during health validation"
+    fi
     if curl -sf "$candidate_health_url" >/dev/null 2>&1; then
       candidate_healthy=true
       break
@@ -195,17 +206,16 @@ cmd_restart() {
     elapsed=$((elapsed + HEALTH_INTERVAL))
   done
 
+  kill -TERM "$candidate_pid" 2>/dev/null || true
+  wait "$candidate_pid" 2>/dev/null || true
+  rm -f "${SYMPHONY_LOG}.candidate"
+
   if [[ "$candidate_healthy" == false ]]; then
-    log "Candidate health check failed — killing candidate, keeping old process"
-    kill -KILL "$candidate_pid" 2>/dev/null || true
-    rm -f "${SYMPHONY_LOG}.candidate"
+    log "Health check timed out after ${HEALTH_TIMEOUT}s — keeping old process"
     die "Restart aborted: new version failed health check"
   fi
 
-  log "Candidate is healthy — switching over"
-
-  # Kill candidate (it was just for validation)
-  kill -TERM "$candidate_pid" 2>/dev/null || true
+  log "Validation passed — switching to port $SYMPHONY_PORT"
 
   # Stop old process
   if [[ -n "$old_pid" ]]; then
@@ -222,14 +232,20 @@ cmd_restart() {
     rm -f "$SYMPHONY_PID"
   fi
 
-  # Start the real new process
-  log "Starting new process on port $SYMPHONY_PORT..."
-  rm -f "${SYMPHONY_LOG}.candidate"
+  # Kill any orphaned process on the main port
+  local port_pids
+  port_pids=$(lsof -ti:"$SYMPHONY_PORT" 2>/dev/null || true)
+  if [[ -n "$port_pids" ]]; then
+    log "Killing orphaned processes on port $SYMPHONY_PORT: $port_pids"
+    echo "$port_pids" | xargs kill -KILL 2>/dev/null || true
+    sleep 1
+  fi
 
-  # Rotate log
   if [[ -f "$SYMPHONY_LOG" ]]; then
     mv "$SYMPHONY_LOG" "${SYMPHONY_LOG}.prev"
   fi
+
+  log "Starting new process on port $SYMPHONY_PORT..."
 
   if [[ "$dev_mode" == true ]]; then
     nohup npx tsx src/cli.ts \
