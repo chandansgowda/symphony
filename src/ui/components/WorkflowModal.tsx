@@ -59,7 +59,7 @@ export function WorkflowModal({ workflow, onClose, onSave }: WorkflowModalProps)
         name,
         description,
         promptTemplate,
-        isDefault: isPrivate ? false : isDefault,
+        isDefault,
         config,
         maxConcurrentAgents,
         color: color || null,
@@ -203,25 +203,18 @@ export function WorkflowModal({ workflow, onClose, onSave }: WorkflowModalProps)
                   </p>
                 </div>
 
-                {isPrivate ? (
-                  <div className="rounded-md px-3 py-2 text-sm border" style={{ color: 'var(--text-muted)', background: 'var(--bg-secondary)', borderColor: 'var(--border-primary)' }}>
-                    <span className="font-medium">Private workflow</span> — changes are saved to your private workflows directory.
-                    Private workflows cannot be set as the default.
-                  </div>
-                ) : (
-                  <div className="flex items-center">
-                    <input
-                      type="checkbox"
-                      id="isDefault"
-                      checked={isDefault}
-                      onChange={(e) => setIsDefault(e.currentTarget.checked)}
-                      className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 dark:border-[#3d3d3d] rounded"
-                    />
-                    <label htmlFor="isDefault" className="ml-2 block text-sm text-gray-900 dark:text-[#e0e0e0]">
-                      Set as default workflow
-                    </label>
-                  </div>
-                )}
+                <div className="flex items-center">
+                  <input
+                    type="checkbox"
+                    id="isDefault"
+                    checked={isDefault}
+                    onChange={(e) => setIsDefault(e.currentTarget.checked)}
+                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 dark:border-[#3d3d3d] rounded"
+                  />
+                  <label htmlFor="isDefault" className="ml-2 block text-sm text-gray-900 dark:text-[#e0e0e0]">
+                    Set as default workflow
+                  </label>
+                </div>
               </div>
             )}
 

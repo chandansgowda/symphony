@@ -205,7 +205,7 @@ export class WorkflowStore {
         description: data.description ?? null,
         promptTemplate,
         config: data.config ?? {},
-        isDefault: isPrivate ? false : (data.is_default ?? false), // Private workflows can't be default
+        isDefault: data.is_default ?? false,
         isPrivate,
         maxConcurrentAgents: data.max_concurrent_agents ?? 1,
         color: data.color,
@@ -377,7 +377,7 @@ export class WorkflowStore {
       description: privateData.description ?? null,
       promptTemplate,
       config: privateData.config ?? {},
-      isDefault: false,
+      isDefault: privateData.is_default ?? false,
       isPrivate: true,
       maxConcurrentAgents: privateData.max_concurrent_agents ?? 1,
       color: privateData.color,
@@ -474,6 +474,15 @@ export class WorkflowStore {
         for (const w of workflowsData) {
           w.is_default = false;
         }
+        if (this.privateWorkflowsDir) {
+          const privateWorkflowsData = await this.loadPrivateWorkflowsJson();
+          if (privateWorkflowsData.some(w => w.is_default)) {
+            for (const w of privateWorkflowsData) {
+              w.is_default = false;
+            }
+            await this.savePrivateWorkflowsJson(privateWorkflowsData);
+          }
+        }
       }
 
       if (updates.name !== undefined) workflowData.name = updates.name;
@@ -521,9 +530,20 @@ export class WorkflowStore {
 
     const privateWorkflowData = privateWorkflowsData[privateIndex];
 
+    if (updates.isDefault) {
+      for (const w of workflowsData) {
+        w.is_default = false;
+      }
+      await this.saveWorkflowsJson(workflowsData);
+      for (const w of privateWorkflowsData) {
+        w.is_default = false;
+      }
+    }
+
     if (updates.name !== undefined) privateWorkflowData.name = updates.name;
     if (updates.description !== undefined) privateWorkflowData.description = updates.description;
     if (updates.config !== undefined) privateWorkflowData.config = updates.config;
+    if (updates.isDefault !== undefined) privateWorkflowData.is_default = updates.isDefault;
     if (updates.maxConcurrentAgents !== undefined) privateWorkflowData.max_concurrent_agents = updates.maxConcurrentAgents;
     if (updates.color !== undefined) privateWorkflowData.color = updates.color ?? undefined;
     privateWorkflowData.updated_at = new Date().toISOString();
@@ -545,7 +565,7 @@ export class WorkflowStore {
       description: privateWorkflowData.description ?? null,
       promptTemplate,
       config: privateWorkflowData.config ?? {},
-      isDefault: false,
+      isDefault: privateWorkflowData.is_default ?? false,
       isPrivate: true,
       maxConcurrentAgents: privateWorkflowData.max_concurrent_agents ?? 1,
       color: privateWorkflowData.color,
