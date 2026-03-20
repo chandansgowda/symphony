@@ -1071,9 +1071,10 @@ export class Orchestrator {
     return details;
   }
 
-  private async handleRunComplete(issue: Issue, result: AgentRunResult, attempt: number | null): Promise<void> {
+   private async handleRunComplete(issue: Issue, result: AgentRunResult, attempt: number | null): Promise<void> {
     const entry = this.state.running.get(issue.id);
     const sessionId = entry?.session?.sessionId;
+    const handoverRequested = entry?.handoverRequested ?? false;
 
     if (entry) {
       const runtime = (Date.now() - entry.startedAt.getTime()) / 1000;
@@ -1087,6 +1088,13 @@ export class Orchestrator {
 
       this.decrementWorkflowCount(entry.workflowId);
       this.state.running.delete(issue.id);
+
+      // Cancel the grace-period abort timer if it's still pending — the session
+      // has already finished naturally so there's nothing left to forcefully abort.
+      if (entry.handoverTimer) {
+        clearTimeout(entry.handoverTimer);
+        entry.handoverTimer = null;
+      }
     }
 
     try {
@@ -1096,6 +1104,20 @@ export class Orchestrator {
 
     if (sessionId) {
       await this.issueTracker.deactivateSession(sessionId);
+    }
+
+    // If a handover was requested (either by the agent calling symphony_handover or by the
+    // orchestrator signalling a graceful shutdown), the issue state has already been updated
+    // externally.  We must NOT schedule a continuation retry or auto-transition, as that
+    // would race with the new workflow picking up the issue and could restart the old session.
+    if (handoverRequested) {
+      log.info('Run completed after handover request, releasing claim without retry', {
+        issueId: issue.id,
+        identifier: issue.identifier,
+        success: result.success,
+      });
+      this.releaseClaim(issue.id);
+      return;
     }
 
     if (result.success) {
