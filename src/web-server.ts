@@ -994,12 +994,18 @@ export class WebServer {
         if (history && history.length > 0) {
           lines.push('#### Conversation');
           lines.push('');
+          let workflowPromptCollapsed = false;
           for (const msg of history) {
             const roleLabel = msg.role === 'user' ? '👤 User' : '🤖 Assistant';
             const ts = new Date(msg.timestamp).toISOString();
             lines.push(`**${roleLabel}** _(${ts})_`);
             lines.push('');
-            lines.push(msg.text);
+            if (msg.role === 'user' && !workflowPromptCollapsed) {
+              lines.push(`_[Workflow: **${workflowLabel}**]_`);
+              workflowPromptCollapsed = true;
+            } else {
+              lines.push(msg.text);
+            }
             lines.push('');
           }
         }
