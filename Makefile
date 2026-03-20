@@ -9,11 +9,11 @@ build-ui:
 run: build
 	node dist/cli.js --watch
 
-dev:
-	bash scripts/service.sh start --dev
+dev: build-ui
+	bash scripts/service.sh restart --dev
 
 prod: build
-	bash scripts/service.sh start
+	bash scripts/service.sh restart
 
 service-stop:
 	bash scripts/service.sh stop
