@@ -22,6 +22,7 @@ export function WorkflowModal({ workflow, onClose, onSave }: WorkflowModalProps)
   const [secondaryModel, setSecondaryModel] = useState(workflow?.config?.opencode?.secondary_model || '');
   const [maxConcurrentAgents, setMaxConcurrentAgents] = useState<number>(workflow?.maxConcurrentAgents ?? 1);
   const [color, setColor] = useState<string>(workflow?.color || '');
+  const [workspaceRoot, setWorkspaceRoot] = useState<string>(workflow?.config?.workspace?.root || '');
 
   useEffect(() => {
     const handleEsc = (e: KeyboardEvent) => {
@@ -46,6 +47,12 @@ export function WorkflowModal({ workflow, onClose, onSave }: WorkflowModalProps)
         };
       } else {
         delete config.opencode;
+      }
+
+      if (workspaceRoot) {
+        config.workspace = { root: workspaceRoot };
+      } else {
+        delete config.workspace;
       }
 
       const data = {
@@ -259,6 +266,20 @@ export function WorkflowModal({ workflow, onClose, onSave }: WorkflowModalProps)
                   />
                   <p className="text-xs text-gray-500 dark:text-[#808080] mt-1">
                     Maximum number of agents that can run in parallel for this workflow
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-[#a0a0a0] mb-1">Workspace Directory</label>
+                  <input
+                    type="text"
+                    value={workspaceRoot}
+                    onInput={(e) => setWorkspaceRoot(e.currentTarget.value)}
+                    placeholder="e.g., ~/workspaces/my-project or /absolute/path"
+                    className="w-full p-2 border border-gray-300 dark:border-[#3d3d3d] rounded focus:ring-2 focus:ring-blue-500 outline-none text-sm font-mono bg-white dark:bg-[#2d2d2d] text-gray-900 dark:text-[#e0e0e0] placeholder-gray-400 dark:placeholder-[#6b6b6b]"
+                  />
+                  <p className="text-xs text-gray-500 dark:text-[#808080] mt-1">
+                    Override the workspace root directory for issues in this workflow. Supports <code className="font-mono">~</code> for home directory. Leave empty to use the global workspace root.
                   </p>
                 </div>
               </div>
