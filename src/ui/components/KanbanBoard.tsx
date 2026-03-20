@@ -14,7 +14,7 @@ interface KanbanBoardProps {
   issues: Issue[];
   runningAgents: RunningAgent[];
   pendingInputRequests: Record<string, InputRequest>;
-  workflowBadgeMode?: 'dot' | 'border';
+  workflowBadgeMode?: 'border';
   workflowColorMap?: Record<string, string | null | undefined>;
   onCardClick: (issueId: string) => void;
   onAddCard: (state: KanbanColumnState) => void;

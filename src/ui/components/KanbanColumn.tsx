@@ -13,7 +13,7 @@ interface KanbanColumnProps {
   issues: Issue[];
   runningAgents: RunningAgent[];
   pendingInputRequests: Record<string, InputRequest>;
-  workflowBadgeMode?: 'dot' | 'border';
+  workflowBadgeMode?: 'border';
   workflowColorMap?: Record<string, string | null | undefined>;
   selectedCardId: string | null;
   quickAddPosition: QuickAddPosition | null;

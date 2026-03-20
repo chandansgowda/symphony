@@ -736,7 +736,7 @@ export class WebServer {
       try {
         const { privateWorkflowsDir, privateWorkflowsEnabled, workflowBadgeMode, theme, safeExecute } = req.body;
         
-        const updates: { privateWorkflowsDir?: string | null; privateWorkflowsEnabled?: boolean; workflowBadgeMode?: 'dot' | 'border'; theme?: 'system' | 'light' | 'dark'; safeExecute?: boolean } = {};
+        const updates: { privateWorkflowsDir?: string | null; privateWorkflowsEnabled?: boolean; workflowBadgeMode?: 'border'; theme?: 'system' | 'light' | 'dark'; safeExecute?: boolean } = {};
         
         if (privateWorkflowsDir !== undefined) {
           updates.privateWorkflowsDir = privateWorkflowsDir;

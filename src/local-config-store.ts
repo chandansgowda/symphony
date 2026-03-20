@@ -7,7 +7,7 @@ const log = new Logger('local-config');
 export interface LocalConfig {
   privateWorkflowsDir?: string | null;
   privateWorkflowsEnabled?: boolean;
-  workflowBadgeMode?: 'dot' | 'border';
+  workflowBadgeMode?: 'border';
   theme?: 'system' | 'light' | 'dark';
   safeExecute?: boolean;
   workflowsRootDir?: string | null;
@@ -16,7 +16,7 @@ export interface LocalConfig {
 const DEFAULT_CONFIG: LocalConfig = {
   privateWorkflowsDir: null,
   privateWorkflowsEnabled: false,
-  workflowBadgeMode: 'dot',
+  workflowBadgeMode: 'border',
   theme: 'system',
   safeExecute: false,
   workflowsRootDir: null,

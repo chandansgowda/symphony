@@ -47,7 +47,7 @@ interface KanbanCardProps {
   issue: Issue;
   runningAgent?: RunningAgent;
   pendingInput?: InputRequest;
-  workflowBadgeMode?: 'dot' | 'border';
+  workflowBadgeMode?: 'border';
   workflowColorOverride?: string | null;
   isSelected?: boolean;
   onClick: () => void;
@@ -162,13 +162,6 @@ export function KanbanCard({ issue, runningAgent, pendingInput, workflowBadgeMod
     >
       <div class="flex justify-between items-start mb-2">
         <div class="flex items-center gap-1.5">
-          {workflowBadgeMode === 'dot' && issue.workflowId && (
-            <span
-              class="w-2 h-2 rounded-full flex-shrink-0"
-              style={{ backgroundColor: workflowColor }}
-              title={`Workflow: ${issue.workflowId}`}
-            />
-          )}
           <span class="text-xs font-medium text-gray-500 dark:text-[#a0a0a0]">{issue.identifier}</span>
         </div>
         <span class="text-xs text-gray-400 dark:text-[#808080]">{formatDate(issue.lastModified ?? issue.created)}</span>
