@@ -66,6 +66,7 @@ export class WebServer {
   private chatSseClients: Set<Response> = new Set();
   private agentLogs: Map<string, AgentLogEntry[]> = new Map();
   private maxAgentLogEntries = 200;
+  private readonly startupNonce: string = Date.now().toString(36);
 
   constructor(options: WebServerOptions) {
     this.port = options.port;
@@ -97,14 +98,20 @@ export class WebServer {
 
   private setupRoutes(): void {
     this.app.get('/', (_req, res) => {
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
       res.send(this.getDashboardHTML());
     });
 
-    this.app.get('/ui/bundle.js', (_req, res) => {
+    this.app.get('/ui/bundle.js', (req, res) => {
       const bundlePath = join(uiDir, 'bundle.js');
       if (existsSync(bundlePath)) {
         try {
           res.type('application/javascript');
+          if (req.query['v'] === this.startupNonce) {
+            res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+          } else {
+            res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+          }
           res.send(readFileSync(bundlePath, 'utf-8'));
         } catch (err) {
           log.error('Failed to read bundle.js', { error: (err as Error).message });
@@ -115,11 +122,17 @@ export class WebServer {
       }
     });
 
-    this.app.get('/ui/styles.css', (_req, res) => {
+    this.app.get('/ui/styles.css', (req, res) => {
       const stylesPath = join(uiDir, 'styles.css');
       if (existsSync(stylesPath)) {
         try {
           res.type('text/css');
+          // If the versioned URL matches the current nonce, allow long-term caching
+          if (req.query['v'] === this.startupNonce) {
+            res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+          } else {
+            res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+          }
           res.send(readFileSync(stylesPath, 'utf-8'));
         } catch (err) {
           log.error('Failed to read styles.css', { error: (err as Error).message });
@@ -1077,12 +1090,12 @@ export class WebServer {
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎵</text></svg>">
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/dompurify@3/dist/purify.min.js"></script>
-  <link rel="stylesheet" href="/ui/styles.css">
+  <link rel="stylesheet" href="/ui/styles.css?v=${this.startupNonce}">
 </head>
 <body>
   <div id="app"></div>
   <script>window.opencodePort = ${OPENCODE_SERVER_PORT};</script>
-  <script type="module" src="/ui/bundle.js"></script>
+  <script type="module" src="/ui/bundle.js?v=${this.startupNonce}"></script>
 </body>
 </html>`;
   }
