@@ -114,6 +114,18 @@ export class WebServer {
       }
     });
 
+    this.app.get('/api/health', (_req, res) => {
+      res.json({ status: 'ok', uptime: process.uptime() });
+    });
+
+    this.app.post('/api/restart', (_req, res) => {
+      res.json({ status: 'restarting' });
+      setImmediate(() => {
+        log.info('Restart requested via API');
+        process.exit(100);
+      });
+    });
+
     this.app.get('/api/status', (_req, res) => {
       const status = this.orchestrator.getStatus();
       const frontendStatus = {
