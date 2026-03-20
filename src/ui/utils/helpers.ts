@@ -4,7 +4,7 @@ export function escapeHtml(text: string): string {
   return div.innerHTML;
 }
 
-function parseDateValue(dateValue: string | number | null | undefined): Date | null {
+export function parseDateValue(dateValue: string | number | null | undefined): Date | null {
   if (dateValue == null) return null;
   let date: Date;
   if (typeof dateValue === 'number') {
@@ -56,6 +56,12 @@ export function formatRelativeTime(dateValue: string | number | null | undefined
   if (diffHours < 24) return `${diffHours}h ago`;
   if (diffDays < 7) return `${diffDays}d ago`;
   return date.toLocaleDateString();
+}
+
+export function formatDateTime(dateValue: string | number | null | undefined): string {
+  const date = parseDateValue(dateValue);
+  if (!date) return '—';
+  return date.toLocaleString();
 }
 
 export function formatElapsedTime(startedAtMs: number): string {

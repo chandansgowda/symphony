@@ -1,5 +1,5 @@
 import { useEffect } from 'preact/hooks';
-import { safeMarkdown } from '../utils/helpers.js';
+import { safeMarkdown, formatDateTime } from '../utils/helpers.js';
 
 export interface SessionExport {
   id: string;
@@ -51,7 +51,7 @@ export function SessionsExportViewer({ issueIdentifier, exportData, onClose }: S
             <div className="flex items-center gap-4 mt-1 text-sm text-gray-500 dark:text-[#a0a0a0]">
               <span>{exportData.sessionCount} session{exportData.sessionCount !== 1 ? 's' : ''}</span>
               <span>•</span>
-              <span>Generated {new Date(exportData.updatedAt).toLocaleString()}</span>
+              <span>Generated {formatDateTime(exportData.updatedAt)}</span>
             </div>
           </div>
           <button 

@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'preact/hooks';
 import { Issue, Workflow, Comment, KANBAN_COLUMNS, SessionExport } from '../types.js';
 import { api } from '../api.js';
-import { safeMarkdown, formatRelativeTime, buildSessionUrl } from '../utils/helpers.js';
+import { safeMarkdown, formatRelativeTime, formatDateTime, formatDate, buildSessionUrl } from '../utils/helpers.js';
 import { SessionsExportViewer } from './SessionsExportViewer.js';
 
 const LABEL_COLORS: Record<string, { name: string; bg: string; text: string }> = {
@@ -254,7 +254,7 @@ export function IssueModal({ issue, onClose, onSave }: IssueModalProps) {
                     ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-400 hover:bg-blue-200 dark:hover:bg-blue-900/60' 
                     : 'bg-gray-100 dark:bg-[#3d3d3d] text-gray-600 dark:text-[#a0a0a0] hover:bg-gray-200 dark:hover:bg-[#4d4d4d]'
                 }`}
-                title={`${session.workflowName || 'Session'} - ${new Date(session.createdAt).toLocaleString()}`}
+                title={`${session.workflowName || 'Session'} - ${formatDateTime(session.createdAt)}`}
               >
                 {isActive && (
                   <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
@@ -598,7 +598,7 @@ export function IssueModal({ issue, onClose, onSave }: IssueModalProps) {
                   <div>
                     <div className="text-xs font-medium text-gray-500 dark:text-[#808080] uppercase tracking-wide mb-1">Created</div>
                     <div className="text-sm text-gray-700 dark:text-[#a0a0a0]">
-                      {new Date(issue.created * 1000).toLocaleDateString()}
+                      {formatDate(issue.created)}
                     </div>
                   </div>
                 )}
