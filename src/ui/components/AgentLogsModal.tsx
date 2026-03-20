@@ -1,19 +1,11 @@
 import { useEffect, useRef } from 'preact/hooks';
 import type { AgentLogEntry, RunningAgent } from '../types.js';
-import { generateListKey, buildSessionUrl } from '../utils/helpers.js';
+import { generateListKey, buildSessionUrl, formatTimestamp } from '../utils/helpers.js';
 
 interface AgentLogsModalProps {
   agent: RunningAgent;
   logs: AgentLogEntry[];
   onClose: () => void;
-}
-
-function formatTimestamp(ts: string): string {
-  const numeric = Number(ts);
-  const date = !isNaN(numeric) && ts.trim() !== ''
-    ? (numeric < 1e10 ? new Date(numeric * 1000) : new Date(numeric))
-    : new Date(ts);
-  return isNaN(date.getTime()) ? ts : date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 }
 
 const SENSITIVE_PATTERN = /(password|pwd|authToken|apiKey|accessToken|jwt|secret|secretKey|privateKey|encryptionKey|sessionToken)[\s:=]*[^\s]*/gi;

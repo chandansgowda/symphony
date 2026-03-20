@@ -22,6 +22,12 @@ function parseDateValue(dateValue: string | number | null | undefined): Date | n
   return isNaN(date.getTime()) ? null : date;
 }
 
+export function formatTimestamp(dateValue: string | number | null | undefined): string {
+  const date = parseDateValue(dateValue);
+  if (!date) return typeof dateValue === 'string' ? dateValue : '—';
+  return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+}
+
 export function formatDate(dateValue: string | number | null | undefined): string {
   const date = parseDateValue(dateValue);
   if (!date) return '—';
