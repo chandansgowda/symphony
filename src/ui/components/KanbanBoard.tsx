@@ -39,7 +39,9 @@ export function KanbanBoard({
 
   const issuesByColumn = useCallback(
     (col: KanbanColumnState): Issue[] =>
-      issues.filter((issue) => issue.state === col),
+      issues
+        .filter((issue) => issue.state === col)
+        .sort((a, b) => (b.lastModified ?? b.created ?? 0) - (a.lastModified ?? a.created ?? 0)),
     [issues]
   );
 

@@ -239,8 +239,8 @@ export class GitLabIssueTrackerClient implements IssueTrackerClient {
       model: (meta?.model as string) ?? null,
       sessionId: (meta?.session_id as string) ?? null,
       workspacePath: (meta?.workspace_path as string) ?? null,
-      createdAt: new Date(glabIssue.created_at),
-      updatedAt: new Date(glabIssue.updated_at),
+      created: Math.floor(new Date(glabIssue.created_at).getTime() / 1000),
+      lastModified: Math.floor(new Date(glabIssue.updated_at).getTime() / 1000),
     };
   }
 

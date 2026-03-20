@@ -171,7 +171,7 @@ export function KanbanCard({ issue, runningAgent, pendingInput, workflowBadgeMod
           )}
           <span class="text-xs font-medium text-gray-500 dark:text-[#a0a0a0]">{issue.identifier}</span>
         </div>
-        <span class="text-xs text-gray-400 dark:text-[#808080]">{formatDate(issue.createdAt)}</span>
+        <span class="text-xs text-gray-400 dark:text-[#808080]">{formatDate(issue.lastModified ?? issue.created)}</span>
       </div>
       
       <h4 class="text-sm font-medium text-gray-900 dark:text-[#e0e0e0] mb-2 leading-snug">{issue.title}</h4>

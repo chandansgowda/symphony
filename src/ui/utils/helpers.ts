@@ -4,8 +4,8 @@ export function escapeHtml(text: string): string {
   return div.innerHTML;
 }
 
-export function formatDate(dateStr: string): string {
-  const date = new Date(dateStr);
+export function formatDate(dateValue: string | number): string {
+  const date = typeof dateValue === 'number' ? new Date(dateValue * 1000) : new Date(dateValue);
   const now = new Date();
   const diff = now.getTime() - date.getTime();
   const days = Math.floor(diff / (1000 * 60 * 60 * 24));

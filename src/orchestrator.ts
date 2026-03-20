@@ -607,8 +607,8 @@ export class Orchestrator {
       const priorityB = b.priority ?? 999;
       if (priorityA !== priorityB) return priorityA - priorityB;
 
-      const createdA = a.createdAt?.getTime() ?? 0;
-      const createdB = b.createdAt?.getTime() ?? 0;
+      const createdA = a.created ?? 0;
+      const createdB = b.created ?? 0;
       if (createdA !== createdB) return createdA - createdB;
 
       return a.identifier.localeCompare(b.identifier);

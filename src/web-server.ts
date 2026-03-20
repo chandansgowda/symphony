@@ -282,12 +282,7 @@ export class WebServer {
         const allIssues = await this.issueTracker.fetchAllIssues();
         const archivedIssues = allIssues
           .filter(issue => issue.state === 'Archived')
-          .sort((a, b) => {
-            // Sort by updatedAt descending (most recently archived first)
-            const aTime = a.updatedAt?.getTime() ?? a.createdAt?.getTime() ?? 0;
-            const bTime = b.updatedAt?.getTime() ?? b.createdAt?.getTime() ?? 0;
-            return bTime - aTime;
-          });
+          .sort((a, b) => (b.lastModified ?? b.created ?? 0) - (a.lastModified ?? a.created ?? 0));
         const issuesWithSessionsAndComments = await Promise.all(
           archivedIssues.map(async (issue) => {
             const [sessions, comments] = await Promise.all([

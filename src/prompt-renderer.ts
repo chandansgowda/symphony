@@ -29,8 +29,8 @@ export async function renderPrompt(template: string, context: PromptContext): Pr
   const issueForTemplate = {
     ...context.issue,
     comments: commentsForTemplate,
-    created_at: context.issue.createdAt?.toISOString() ?? null,
-    updated_at: context.issue.updatedAt?.toISOString() ?? null,
+    created_at: context.issue.created ?? null,
+    updated_at: context.issue.lastModified ?? null,
     branch_name: context.issue.branchName,
     blocked_by: context.issue.blockedBy,
     handover_notes: handoverNotes,

@@ -27,8 +27,8 @@ const SCHEMA = `
     model TEXT,
     session_id TEXT,
     workspace_path TEXT,
-    created_at TEXT,
-    updated_at TEXT
+    created INTEGER,
+    last_modified INTEGER
   );
 
   CREATE TABLE IF NOT EXISTS blockers (
@@ -83,6 +83,7 @@ const SCHEMA = `
 
   CREATE INDEX IF NOT EXISTS idx_issues_state ON issues(state);
   CREATE INDEX IF NOT EXISTS idx_issues_identifier ON issues(identifier);
+  CREATE INDEX IF NOT EXISTS idx_issues_last_modified ON issues(last_modified);
   CREATE INDEX IF NOT EXISTS idx_blockers_issue_id ON blockers(issue_id);
   CREATE INDEX IF NOT EXISTS idx_comments_issue_id ON comments(issue_id);
   CREATE INDEX IF NOT EXISTS idx_session_logs_issue_id ON session_logs(issue_id);
@@ -115,41 +116,63 @@ export class LocalSqliteClient implements IssueTrackerClient {
     this.db.pragma('foreign_keys = ON');
     this.db.exec(SCHEMA);
 
-    // Migration: Add workspace_path column if it doesn't exist
     const columns = this.db.prepare(`PRAGMA table_info(issues)`).all() as Array<{ name: string }>;
-    const hasWorkspacePath = columns.some(col => col.name === 'workspace_path');
-    if (!hasWorkspacePath) {
+    const columnNames = new Set(columns.map(c => c.name));
+
+    // Migration: Add workspace_path column if it doesn't exist
+    if (!columnNames.has('workspace_path')) {
       this.db.exec(`ALTER TABLE issues ADD COLUMN workspace_path TEXT`);
       log.info('Migrated database: added workspace_path column');
     }
 
     // Migration: Add content column to session_logs if it doesn't exist
     const sessionLogColumns = this.db.prepare(`PRAGMA table_info(session_logs)`).all() as Array<{ name: string }>;
-    const hasContent = sessionLogColumns.some(col => col.name === 'content');
-    if (!hasContent) {
+    if (!sessionLogColumns.some(col => col.name === 'content')) {
       this.db.exec(`ALTER TABLE session_logs ADD COLUMN content TEXT NOT NULL DEFAULT ''`);
       log.info('Migrated database: added content column to session_logs');
     }
 
     // Migration: Add model column to issues if it doesn't exist
-    const hasModel = columns.some(col => col.name === 'model');
-    if (!hasModel) {
+    if (!columnNames.has('model')) {
       this.db.exec(`ALTER TABLE issues ADD COLUMN model TEXT`);
       log.info('Migrated database: added model column to issues');
     }
 
     // Migration: Add worktree_root column to issue_sessions if it doesn't exist
     const sessionColumns = this.db.prepare(`PRAGMA table_info(issue_sessions)`).all() as Array<{ name: string }>;
-    const hasWorktreeRoot = sessionColumns.some(col => col.name === 'worktree_root');
-    if (!hasWorktreeRoot) {
+    if (!sessionColumns.some(col => col.name === 'worktree_root')) {
       this.db.exec(`ALTER TABLE issue_sessions ADD COLUMN worktree_root TEXT`);
       log.info('Migrated database: added worktree_root column to issue_sessions');
     }
 
+    if (columnNames.has('created_at') && !columnNames.has('created')) {
+      this.db.exec(`ALTER TABLE issues ADD COLUMN created INTEGER`);
+      this.db.exec(`ALTER TABLE issues ADD COLUMN last_modified INTEGER`);
+      this.db.exec(`
+        UPDATE issues SET
+          created = CAST(strftime('%s', created_at) AS INTEGER),
+          last_modified = CAST(strftime('%s', updated_at) AS INTEGER)
+        WHERE created_at IS NOT NULL
+      `);
+      const nowSec = Math.floor(Date.now() / 1000);
+      this.db.exec(`
+        UPDATE issues SET
+          created = ${nowSec},
+          last_modified = ${nowSec}
+        WHERE created IS NULL
+      `);
+      log.info('Migrated database: converted created_at/updated_at to Unix epoch seconds');
+    } else if (!columnNames.has('created')) {
+      this.db.exec(`ALTER TABLE issues ADD COLUMN created INTEGER`);
+      this.db.exec(`ALTER TABLE issues ADD COLUMN last_modified INTEGER`);
+      log.info('Migrated database: added created/last_modified columns');
+    }
+
+    const nowSec = Math.floor(Date.now() / 1000);
     const migrated = this.db.prepare(`
-      UPDATE issues SET state = 'Done', updated_at = ? 
+      UPDATE issues SET state = 'Done', last_modified = ?
       WHERE state IN ('Cancelled', 'Canceled')
-    `).run(new Date().toISOString());
+    `).run(nowSec);
     if (migrated.changes > 0) {
       log.info('Migrated Cancelled issues to Done', { count: migrated.changes });
     }
@@ -232,8 +255,8 @@ export class LocalSqliteClient implements IssueTrackerClient {
       sessionId: (row.session_id as string) ?? null,
       workspacePath: (row.workspace_path as string) ?? null,
       model: (row.model as string) ?? null,
-      createdAt: row.created_at ? new Date(row.created_at as string) : null,
-      updatedAt: row.updated_at ? new Date(row.updated_at as string) : null,
+      created: (row.created as number) ?? null,
+      lastModified: (row.last_modified as number) ?? null,
     };
   }
 
@@ -326,7 +349,7 @@ export class LocalSqliteClient implements IssueTrackerClient {
 
   async createIssue(data: IssueCreateData): Promise<Issue> {
     const db = this.getDb();
-    const now = new Date().toISOString();
+    const nowSec = Math.floor(Date.now() / 1000);
     const id = data.id ?? `issue-${Date.now()}`;
     const identifier = data.identifier ?? `TASK-${Date.now()}`;
 
@@ -334,7 +357,7 @@ export class LocalSqliteClient implements IssueTrackerClient {
       INSERT INTO issues (
         id, identifier, title, description, priority, state,
         branch_name, url, labels, workflow_id, session_id, model,
-        created_at, updated_at
+        created, last_modified
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
       id,
@@ -349,8 +372,8 @@ export class LocalSqliteClient implements IssueTrackerClient {
       data.workflowId ?? null,
       null,
       data.model ?? null,
-      now,
-      now
+      nowSec,
+      nowSec
     );
 
     log.info('Created issue', { id, identifier });
@@ -371,20 +394,20 @@ export class LocalSqliteClient implements IssueTrackerClient {
       sessionId: null,
       workspacePath: null,
       model: data.model ?? null,
-      createdAt: new Date(now),
-      updatedAt: new Date(now),
+      created: nowSec,
+      lastModified: nowSec,
     };
   }
 
   async updateIssue(issueId: string, data: IssueUpdateData): Promise<Issue | null> {
     const db = this.getDb();
-    const now = new Date().toISOString();
+    const nowSec = Math.floor(Date.now() / 1000);
 
     const row = db.prepare(`SELECT * FROM issues WHERE id = ? OR identifier = ?`).get(issueId, issueId) as Record<string, unknown> | undefined;
     if (!row) return null;
 
-    const updates: string[] = ['updated_at = ?'];
-    const values: unknown[] = [now];
+    const updates: string[] = ['last_modified = ?'];
+    const values: unknown[] = [nowSec];
 
     if (data.title !== undefined) { updates.push('title = ?'); values.push(data.title); }
     if (data.description !== undefined) { updates.push('description = ?'); values.push(data.description); }
@@ -418,31 +441,32 @@ export class LocalSqliteClient implements IssueTrackerClient {
 
   async updateIssueState(issueId: string, newState: string): Promise<void> {
     const db = this.getDb();
-    const now = new Date().toISOString();
+    const nowSec = Math.floor(Date.now() / 1000);
 
-    db.prepare(`UPDATE issues SET state = ?, updated_at = ? WHERE id = ?`).run(newState, now, issueId);
+    db.prepare(`UPDATE issues SET state = ?, last_modified = ? WHERE id = ?`).run(newState, nowSec, issueId);
     log.info('Updated issue state', { issueId, newState });
   }
 
   async updateIssueSessionId(issueId: string, sessionId: string | null): Promise<void> {
     const db = this.getDb();
-    const now = new Date().toISOString();
+    const nowSec = Math.floor(Date.now() / 1000);
 
-    db.prepare(`UPDATE issues SET session_id = ?, updated_at = ? WHERE id = ?`).run(sessionId, now, issueId);
+    db.prepare(`UPDATE issues SET session_id = ?, last_modified = ? WHERE id = ?`).run(sessionId, nowSec, issueId);
     log.info('Updated issue session_id', { issueId, sessionId });
   }
 
   async updateIssueWorkspacePath(issueId: string, workspacePath: string | null): Promise<void> {
     const db = this.getDb();
-    const now = new Date().toISOString();
+    const nowSec = Math.floor(Date.now() / 1000);
 
-    db.prepare(`UPDATE issues SET workspace_path = ?, updated_at = ? WHERE id = ?`).run(workspacePath, now, issueId);
+    db.prepare(`UPDATE issues SET workspace_path = ?, last_modified = ? WHERE id = ?`).run(workspacePath, nowSec, issueId);
     log.info('Updated issue workspace_path', { issueId, workspacePath });
   }
 
   async addComment(issueId: string, author: 'human' | 'agent', content: string): Promise<IssueComment> {
     const db = this.getDb();
     const now = new Date().toISOString();
+    const nowSec = Math.floor(Date.now() / 1000);
     const commentId = `comment-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
     db.prepare(`
@@ -450,7 +474,7 @@ export class LocalSqliteClient implements IssueTrackerClient {
       VALUES (?, ?, ?, ?, ?)
     `).run(commentId, issueId, author, content, now);
 
-    db.prepare(`UPDATE issues SET updated_at = ? WHERE id = ?`).run(now, issueId);
+    db.prepare(`UPDATE issues SET last_modified = ? WHERE id = ?`).run(nowSec, issueId);
 
     log.info('Added comment to issue', { issueId, author, commentId });
 
@@ -481,6 +505,7 @@ export class LocalSqliteClient implements IssueTrackerClient {
   async addLog(issueId: string, content: string, sessionId?: string | null, workflowId?: string | null): Promise<IssueLog> {
     const db = this.getDb();
     const now = new Date().toISOString();
+    const nowSec = Math.floor(Date.now() / 1000);
     const logId = `log-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
     db.prepare(`
@@ -488,7 +513,7 @@ export class LocalSqliteClient implements IssueTrackerClient {
       VALUES (?, ?, ?, ?, ?, ?)
     `).run(logId, issueId, sessionId ?? null, workflowId ?? null, content, now);
 
-    db.prepare(`UPDATE issues SET updated_at = ? WHERE id = ?`).run(now, issueId);
+    db.prepare(`UPDATE issues SET last_modified = ? WHERE id = ?`).run(nowSec, issueId);
 
     log.info('Added session log to issue', { issueId, logId });
 

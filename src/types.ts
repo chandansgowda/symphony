@@ -68,8 +68,8 @@ export interface Issue {
   model: string | null;
   sessionId: string | null;
   workspacePath: string | null;
-  createdAt: Date | null;
-  updatedAt: Date | null;
+  created: number | null;
+  lastModified: number | null;
 }
 
 // ============================================================================
