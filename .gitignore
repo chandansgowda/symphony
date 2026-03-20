@@ -1,6 +1,7 @@
 node_modules/
 dist/
 *.log
+*.pid
 .DS_Store
 
 # Data directory (user-specific data)
@@ -15,3 +16,6 @@ data/local-config.json
 data/workflow/*
 !data/workflow/sample-*
 !data/workflow/example.md
+
+# Agent workspaces
+rotten-moth/

@@ -83,7 +83,6 @@ const SCHEMA = `
 
   CREATE INDEX IF NOT EXISTS idx_issues_state ON issues(state);
   CREATE INDEX IF NOT EXISTS idx_issues_identifier ON issues(identifier);
-  CREATE INDEX IF NOT EXISTS idx_issues_last_modified ON issues(last_modified);
   CREATE INDEX IF NOT EXISTS idx_blockers_issue_id ON blockers(issue_id);
   CREATE INDEX IF NOT EXISTS idx_comments_issue_id ON comments(issue_id);
   CREATE INDEX IF NOT EXISTS idx_session_logs_issue_id ON session_logs(issue_id);
@@ -168,6 +167,9 @@ export class LocalSqliteClient implements IssueTrackerClient {
       log.info('Migrated database: added created/last_modified columns');
     }
 
+    // Create index after migration ensures the column exists (for both fresh and migrated DBs)
+    this.db.exec(`CREATE INDEX IF NOT EXISTS idx_issues_last_modified ON issues(last_modified)`);
+
     const nowSec = Math.floor(Date.now() / 1000);
     const migrated = this.db.prepare(`
       UPDATE issues SET state = 'Done', last_modified = ?
@@ -176,6 +178,9 @@ export class LocalSqliteClient implements IssueTrackerClient {
     if (migrated.changes > 0) {
       log.info('Migrated Cancelled issues to Done', { count: migrated.changes });
     }
+
+    // Create last_modified index after migration ensures the column exists
+    this.db.exec(`CREATE INDEX IF NOT EXISTS idx_issues_last_modified ON issues(last_modified)`);
 
     log.info('SQLite database initialized', { path: this.dbPath });
   }
