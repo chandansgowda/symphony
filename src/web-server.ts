@@ -104,6 +104,31 @@ export class WebServer {
       res.send(this.getDashboardHTML());
     });
 
+    // ========================================================================
+    // PWA Assets
+    // ========================================================================
+
+    this.app.get('/manifest.json', (_req, res) => {
+      res.setHeader('Content-Type', 'application/manifest+json');
+      res.setHeader('Cache-Control', 'public, max-age=0, must-revalidate');
+      res.json(this.getPwaManifest());
+    });
+
+    this.app.get('/sw.js', (_req, res) => {
+      // Cache-Control: no-store is required — the browser byte-diffs sw.js to
+      // detect updates. If cached, users never receive SW version upgrades.
+      res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
+      res.setHeader('Cache-Control', 'no-store');
+      res.setHeader('Service-Worker-Allowed', '/');
+      res.send(this.getServiceWorkerScript());
+    });
+
+    this.app.get('/offline.html', (_req, res) => {
+      res.setHeader('Content-Type', 'text/html; charset=utf-8');
+      res.setHeader('Cache-Control', 'public, max-age=86400');
+      res.send(this.getOfflinePageHTML());
+    });
+
     this.app.get('/ui/bundle.js', (req, res) => {
       const bundlePath = join(uiDir, 'bundle.js');
       if (existsSync(bundlePath)) {
@@ -1081,14 +1106,207 @@ export class WebServer {
     this.agentLogs.clear();
   }
 
+  private getPwaManifest(): Record<string, unknown> {
+    return {
+      name: 'Symphony',
+      short_name: 'Symphony',
+      description: 'AI-powered issue orchestration and Kanban board',
+      id: '/?source=pwa',
+      start_url: '/?source=pwa',
+      scope: '/',
+      display: 'standalone',
+      orientation: 'any',
+      background_color: '#0f0f0f',
+      theme_color: '#0f0f0f',
+      lang: 'en-US',
+      icons: [
+        {
+          src: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎵</text></svg>",
+          sizes: 'any',
+          type: 'image/svg+xml',
+          purpose: 'any',
+        },
+      ],
+      categories: ['productivity', 'utilities'],
+    };
+  }
+
+  private getServiceWorkerScript(): string {
+    const cacheVersion = this.startupNonce;
+    return `'use strict';
+
+const CACHE_VERSION = ${JSON.stringify(cacheVersion)};
+const STATIC_CACHE  = 'symphony-static-'  + CACHE_VERSION;
+const RUNTIME_CACHE = 'symphony-runtime-' + CACHE_VERSION;
+const API_CACHE     = 'symphony-api-'     + CACHE_VERSION;
+
+const PRECACHE_ASSETS = ['/', '/offline.html'];
+
+self.addEventListener('install', (event) => {
+  event.waitUntil(
+    caches.open(STATIC_CACHE)
+      .then((cache) => cache.addAll(PRECACHE_ASSETS))
+      .then(() => self.skipWaiting())
+  );
+});
+
+self.addEventListener('activate', (event) => {
+  const currentCaches = [STATIC_CACHE, RUNTIME_CACHE, API_CACHE];
+  event.waitUntil(
+    caches.keys()
+      .then((names) => Promise.all(
+        names
+          .filter((n) => n.startsWith('symphony-') && !currentCaches.includes(n))
+          .map((n) => caches.delete(n))
+      ))
+      .then(() => self.clients.claim())
+  );
+});
+
+self.addEventListener('fetch', (event) => {
+  const { request } = event;
+  const url = new URL(request.url);
+
+  if (request.method !== 'GET' || url.origin !== location.origin) return;
+
+  if (url.pathname.startsWith('/api/')) {
+    event.respondWith(networkFirst(request, API_CACHE, 3000));
+    return;
+  }
+
+  if (/\\.(?:js|css|png|jpg|jpeg|svg|ico|woff2?|ttf)$/.test(url.pathname)) {
+    event.respondWith(cacheFirst(request, STATIC_CACHE));
+    return;
+  }
+
+  if (request.mode === 'navigate') {
+    event.respondWith(networkFirstWithOfflineFallback(request));
+    return;
+  }
+});
+
+async function cacheFirst(request, cacheName) {
+  const cached = await caches.match(request);
+  if (cached) return cached;
+  try {
+    const response = await fetch(request);
+    if (response.ok) {
+      const cache = await caches.open(cacheName);
+      cache.put(request, response.clone());
+    }
+    return response;
+  } catch (_err) {
+    return new Response('Resource unavailable offline', {
+      status: 408,
+      headers: { 'Content-Type': 'text/plain' },
+    });
+  }
+}
+
+async function networkFirst(request, cacheName, timeoutMs) {
+  const cache = await caches.open(cacheName);
+  try {
+    const networkPromise = fetch(request);
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('Network timeout')), timeoutMs)
+    );
+    const response = await Promise.race([networkPromise, timeoutPromise]);
+    if (response.ok) cache.put(request, response.clone());
+    return response;
+  } catch (_err) {
+    const cached = await cache.match(request);
+    if (cached) return cached;
+    return new Response(JSON.stringify({ error: 'Offline', cached: false }), {
+      status: 503,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+}
+
+async function networkFirstWithOfflineFallback(request) {
+  try {
+    const response = await fetch(request);
+    if (response.ok) {
+      const cache = await caches.open(RUNTIME_CACHE);
+      cache.put(request, response.clone());
+    }
+    return response;
+  } catch (_err) {
+    const cached = await caches.match(request);
+    if (cached) return cached;
+    const offlinePage = await caches.match('/offline.html');
+    return offlinePage ?? new Response('<h1>Offline</h1>', {
+      status: 503,
+      headers: { 'Content-Type': 'text/html' },
+    });
+  }
+}
+`;
+  }
+
+  private getOfflinePageHTML(): string {
+    return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0f0f0f">
+  <title>Symphony — Offline</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      background: #0f0f0f;
+      color: #e0e0e0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100dvh;
+      margin: 0;
+      gap: 1rem;
+      padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+      box-sizing: border-box;
+    }
+    h1 { font-size: 1.5rem; margin: 0; }
+    p { color: #9e9e9e; text-align: center; max-width: 300px; margin: 0; }
+    button {
+      margin-top: 0.5rem;
+      padding: 0.75rem 1.5rem;
+      border-radius: 8px;
+      border: none;
+      background: #4f46e5;
+      color: white;
+      font-size: 1rem;
+      cursor: pointer;
+      touch-action: manipulation;
+      min-height: 44px;
+    }
+  </style>
+</head>
+<body>
+  <span style="font-size:3rem">🎵</span>
+  <h1>Symphony</h1>
+  <p>You're offline. Check your connection and try again.</p>
+  <button onclick="window.location.reload()">Retry</button>
+</body>
+</html>`;
+  }
+
   private getDashboardHTML(): string {
     return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0f0f0f">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Symphony">
   <title>Symphony Dashboard</title>
+  <link rel="manifest" href="/manifest.json">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎵</text></svg>">
+  <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎵</text></svg>">
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/dompurify@3/dist/purify.min.js"></script>
   <link rel="stylesheet" href="/ui/styles.css?v=${this.startupNonce}">
@@ -1097,6 +1315,25 @@ export class WebServer {
   <div id="app"></div>
   <script>window.opencodePort = ${OPENCODE_SERVER_PORT};</script>
   <script type="module" src="/ui/bundle.js?v=${this.startupNonce}"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function() {
+        navigator.serviceWorker.register('/sw.js', { scope: '/' })
+          .then(function(reg) {
+            reg.addEventListener('updatefound', function() {
+              var newWorker = reg.installing;
+              if (!newWorker) return;
+              newWorker.addEventListener('statechange', function() {
+                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                  console.log('[PWA] New version available — reload to update');
+                }
+              });
+            });
+          })
+          .catch(function(err) { console.warn('[PWA] SW registration failed:', err); });
+      });
+    }
+  </script>
 </body>
 </html>`;
   }
