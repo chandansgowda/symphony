@@ -37,6 +37,22 @@ interface WebServerOptions {
   issueTracker: IssueTrackerClient;
 }
 
+function serializeAgentLogEntry(entry: AgentLogEntry): {
+  type: string;
+  content: string;
+  timestamp: string;
+  metadata?: Record<string, unknown>;
+} {
+  return {
+    type: entry.type,
+    content: entry.message,
+    timestamp: entry.timestamp instanceof Date
+      ? entry.timestamp.toISOString()
+      : String(entry.timestamp),
+    metadata: entry.details as Record<string, unknown> | undefined,
+  };
+}
+
 export class WebServer {
   private app: express.Application;
   private port: number;
@@ -746,7 +762,7 @@ export class WebServer {
 
     this.app.get('/api/agents/:id/logs', (req, res) => {
       const logs = this.agentLogs.get(req.params.id) ?? [];
-      res.json(logs);
+      res.json(logs.map(serializeAgentLogEntry));
     });
 
     this.app.post('/api/agents/:id/input', (req, res) => {
@@ -896,7 +912,7 @@ export class WebServer {
     
     this.broadcast({ 
       type: 'agent_log', 
-      data: { issueId, entry } 
+      data: { issueId, entry: serializeAgentLogEntry(entry) } 
     });
   }
 
