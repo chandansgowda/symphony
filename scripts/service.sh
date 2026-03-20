@@ -177,11 +177,11 @@ cmd_restart() {
 
   if [[ "$dev_mode" == true ]]; then
     SYMPHONY_PORT="$tmp_port" npx tsx src/cli.ts \
-      --port "$tmp_port" --no-web \
+      --port "$tmp_port" \
       >> "${SYMPHONY_LOG}.candidate" 2>&1 &
   else
     SYMPHONY_PORT="$tmp_port" node dist/cli.js \
-      --port "$tmp_port" --no-web \
+      --port "$tmp_port" \
       >> "${SYMPHONY_LOG}.candidate" 2>&1 &
   fi
 

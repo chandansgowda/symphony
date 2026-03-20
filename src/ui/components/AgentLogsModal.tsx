@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'preact/hooks';
 import type { AgentLogEntry, RunningAgent } from '../types.js';
-import { generateListKey, buildSessionUrl, formatTimestamp } from '../utils/helpers.js';
+import { generateListKey, buildSessionUrl, formatTimestamp, formatDateTime } from '../utils/helpers.js';
 
 interface AgentLogsModalProps {
   agent: RunningAgent;
@@ -81,7 +81,7 @@ export function AgentLogsModal({ agent, logs, onClose }: AgentLogsModalProps) {
           <div>
             <h3 style={{ marginBottom: '8px' }}>Agent Logs — {agent.identifier}</h3>
             <div className="agent-info-label" style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
-              <span>Started: {new Date(agent.startedAt).toLocaleString()}</span>
+              <span>Started: {formatDateTime(agent.startedAt)}</span>
               {sessionLink && (
                 <a
                   href={sessionLink}

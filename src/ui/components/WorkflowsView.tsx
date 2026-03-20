@@ -1,4 +1,5 @@
 import type { Workflow } from '../types.js';
+import { formatDate } from '../utils/helpers.js';
 
 interface WorkflowsViewProps {
   workflows: Workflow[];
@@ -90,7 +91,7 @@ export function WorkflowsView({ workflows, onEdit, onCreate }: WorkflowsViewProp
                   </div>
                 )}
                 <div className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                  Created: {new Date(workflow.createdAt).toLocaleDateString()}
+                  Created: {formatDate(workflow.createdAt)}
                 </div>
               </div>
             </button>
