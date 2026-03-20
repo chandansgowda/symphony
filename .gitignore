@@ -19,3 +19,4 @@ data/workflow/*
 
 # Agent workspaces
 rotten-moth/
+symphony.log.candidate
