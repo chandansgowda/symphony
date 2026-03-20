@@ -129,7 +129,8 @@ export function encodeWorkspacePath(workspacePath: string): string {
 }
 
 export function buildSessionUrl(port: string | number, workspacePath: string, sessionId: string): string {
-  return `http://localhost:${port}/${encodeWorkspacePath(workspacePath)}/session/${sessionId}`;
+  const host = typeof window !== 'undefined' ? window.location.hostname : 'localhost';
+  return `http://${host}:${port}/${encodeWorkspacePath(workspacePath)}/session/${sessionId}`;
 }
 
 export function generateListKey(content: string, index: number, prefix = 'item'): string {
