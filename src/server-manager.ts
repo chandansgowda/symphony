@@ -35,7 +35,7 @@ export class ServerManager {
 
   constructor(options: ServerManagerOptions) {
     this.port = options.port;
-    this.hostname = options.hostname ?? '127.0.0.1';
+    this.hostname = options.hostname ?? '0.0.0.0';
     this.startupTimeoutMs = options.startupTimeoutMs ?? 30000;
     this.safeExecute = options.safeExecute ?? false;
     this.workspaceRoots = options.workspaceRoots && options.workspaceRoots.length > 0
