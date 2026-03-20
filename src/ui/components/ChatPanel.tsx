@@ -3,6 +3,8 @@ import type { ChatMessage, ChatSession } from '../types.js';
 import { api, createChatEventSource, ChatEventSourceController } from '../api.js';
 import { safeMarkdown, generateListKey, buildSessionUrl } from '../utils/helpers.js';
 
+const MAX_CHAT_MESSAGES = 500;
+
 interface ChatPanelProps {
   isOpen: boolean;
   onClose: () => void;
@@ -44,7 +46,8 @@ export function ChatPanel({ isOpen, onClose, onOpen }: ChatPanelProps) {
           if (last?.role === 'assistant' && last.content === response.message) {
             return prev;
           }
-          return [...prev, { role: 'assistant', content: response.message }];
+          const next: ChatMessage[] = [...prev, { role: 'assistant', content: response.message }];
+          return next.length > MAX_CHAT_MESSAGES ? next.slice(-MAX_CHAT_MESSAGES) : next;
         });
         if (response.sessionId) {
           setChatSession((prev) => ({ ...prev, sessionId: response.sessionId }));
@@ -97,7 +100,10 @@ export function ChatPanel({ isOpen, onClose, onOpen }: ChatPanelProps) {
         setCurrentAssistantMessage((prev) => {
           const completedMessage = prev;
           if (completedMessage) {
-            setMessages((msgs) => [...msgs, { role: 'assistant', content: completedMessage }]);
+            setMessages((msgs) => {
+              const next: ChatMessage[] = [...msgs, { role: 'assistant', content: completedMessage }];
+              return next.length > MAX_CHAT_MESSAGES ? next.slice(-MAX_CHAT_MESSAGES) : next;
+            });
           }
           return '';
         });
@@ -126,7 +132,10 @@ export function ChatPanel({ isOpen, onClose, onOpen }: ChatPanelProps) {
     if (!text) return;
 
     // Always show the user's message immediately
-    setMessages((prev) => [...prev, { role: 'user', content: text }]);
+    setMessages((prev) => {
+      const next: ChatMessage[] = [...prev, { role: 'user', content: text }];
+      return next.length > MAX_CHAT_MESSAGES ? next.slice(-MAX_CHAT_MESSAGES) : next;
+    });
     setInputValue('');
     if (textareaRef.current) textareaRef.current.style.height = 'auto';
 

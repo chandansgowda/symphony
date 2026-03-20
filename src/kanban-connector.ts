@@ -1,4 +1,4 @@
-import { Connector, ConnectorContext, ConnectorEvent, AgentLogEvent, InputRequestedEvent } from './connector.js';
+import { Connector, ConnectorContext, ConnectorEvent, AgentLogEvent, InputRequestedEvent, AgentCompletedEvent, AgentFailedEvent } from './connector.js';
 import { WebServer } from './web-server.js';
 import { Orchestrator } from './orchestrator.js';
 import { ServiceConfig } from './config.js';
@@ -86,10 +86,18 @@ export class KanbanConnector implements Connector {
       }
 
       case 'agent_started':
-      case 'agent_completed':
-      case 'agent_failed':
         this.webServer.broadcastStatusUpdated();
         break;
+
+      case 'agent_completed':
+      case 'agent_failed': {
+        const agentEvent = event as AgentCompletedEvent | AgentFailedEvent;
+        if (agentEvent.issueId) {
+          this.webServer.clearAgentLogs(agentEvent.issueId);
+        }
+        this.webServer.broadcastStatusUpdated();
+        break;
+      }
     }
   }
 

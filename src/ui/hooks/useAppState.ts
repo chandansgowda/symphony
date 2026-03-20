@@ -41,11 +41,20 @@ export function useAppState() {
   const fetchIssues = useCallback(async () => {
     try {
       const issues = await api.getIssues();
-      updateState({ issues });
+      const issueIdSet = new Set(issues.map((i) => i.id));
+      setState((prev) => {
+        const pruned: typeof prev.agentLogCache = {};
+        for (const key of Object.keys(prev.agentLogCache)) {
+          if (issueIdSet.has(key)) {
+            pruned[key] = prev.agentLogCache[key];
+          }
+        }
+        return { ...prev, issues, agentLogCache: pruned };
+      });
     } catch (err) {
       console.error('Failed to fetch issues', err);
     }
-  }, [updateState]);
+  }, []);
 
   const fetchWorkflows = useCallback(async () => {
     try {
