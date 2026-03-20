@@ -9,7 +9,6 @@ export function SettingsView() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [dirInput, setDirInput] = useState('');
-  const [workflowsRootInput, setWorkflowsRootInput] = useState('');
 
   const loadSettings = useCallback(async () => {
     try {
@@ -18,7 +17,6 @@ export function SettingsView() {
       const data = await api.getSettings();
       setSettings(data);
       setDirInput(data.privateWorkflowsDir || '');
-      setWorkflowsRootInput(data.workflowsRootDir || '');
     } catch (err) {
       setError((err as Error).message);
     } finally {
@@ -38,7 +36,6 @@ export function SettingsView() {
       const updated = await api.updateSettings({
         privateWorkflowsDir: dirInput.trim() || null,
         privateWorkflowsEnabled: settings.privateWorkflowsEnabled,
-        workflowsRootDir: workflowsRootInput.trim() || null,
       });
       setSettings(updated);
       setSuccess('Settings saved successfully. Refresh workflows to see changes.');
@@ -155,51 +152,6 @@ export function SettingsView() {
           Changes take effect on the next Symphony restart.
           Override the Docker image via the <code className="px-1 rounded" style={{ background: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }}>SYMPHONY_OPENCODE_DOCKER_IMAGE</code> environment variable.
         </p>
-      </div>
-
-      <div className="rounded-lg p-6 mb-6" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-primary)', boxShadow: 'var(--shadow-sm)' }}>
-        <h3 className="text-lg font-semibold mb-4" style={{ color: 'var(--text-primary)' }}>Workflows Root</h3>
-        <p className="text-sm mb-4" style={{ color: 'var(--text-secondary)' }}>
-          Override the directory where workflow files are stored and executed.
-          Leave blank to use the default location (<code className="px-1 rounded" style={{ background: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }}>data/workflow/</code> relative to your issues database).
-        </p>
-
-        <div>
-          <label htmlFor="workflowsRootDir" className="block text-sm font-medium mb-1" style={{ color: 'var(--text-primary)' }}>
-            Workflows Root Directory
-          </label>
-          <input
-            type="text"
-            id="workflowsRootDir"
-            value={workflowsRootInput}
-            onChange={(e) => setWorkflowsRootInput((e.target as HTMLInputElement).value)}
-            placeholder="/path/to/workflows"
-            disabled={saving}
-            className="w-full px-3 py-2 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:cursor-not-allowed"
-            style={{
-              background: 'var(--bg-input)',
-              border: '1px solid var(--border-primary)',
-              color: 'var(--text-primary)',
-            }}
-          />
-          <p className="mt-1 text-xs" style={{ color: 'var(--text-muted)' }}>
-            Directory should contain a <code className="px-1 rounded" style={{ background: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }}>workflows.json</code> file
-            and workflow template files (<code className="px-1 rounded" style={{ background: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }}>.md</code>).
-            Supports <code className="px-1 rounded" style={{ background: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }}>~</code> for home directory.
-          </p>
-        </div>
-
-        <div className="pt-4 mt-4" style={{ borderTop: '1px solid var(--border-primary)' }}>
-          <button
-            onClick={handleSave}
-            disabled={saving}
-            className={`px-4 py-2 bg-blue-600 text-white rounded-md font-medium transition-colors ${
-              saving ? 'opacity-50 cursor-not-allowed' : 'hover:bg-blue-700'
-            }`}
-          >
-            {saving ? 'Saving...' : 'Save Settings'}
-          </button>
-        </div>
       </div>
 
       <div className="rounded-lg p-6" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-primary)', boxShadow: 'var(--shadow-sm)' }}>
