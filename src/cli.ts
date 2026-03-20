@@ -36,9 +36,30 @@ interface WorkflowsFile {
 
 async function loadFromWorkflowDir(workflowDir: string): Promise<{ promptTemplate: string; config: WorkflowConfig } | null> {
   const jsonPath = path.join(workflowDir, 'workflows.json');
+  const sampleJsonPath = path.join(workflowDir, 'sample-workflows.json');
   
   try {
-    const content = await fs.readFile(jsonPath, 'utf-8');
+    let content: string;
+    try {
+      content = await fs.readFile(jsonPath, 'utf-8');
+    } catch (err) {
+      if ((err as NodeJS.ErrnoException).code === 'ENOENT') {
+        // workflows.json doesn't exist - try to copy from sample
+        try {
+          const sampleContent = await fs.readFile(sampleJsonPath, 'utf-8');
+          await fs.mkdir(workflowDir, { recursive: true });
+          await fs.writeFile(jsonPath, sampleContent, 'utf-8');
+          log.info('Created workflows.json from sample', { path: jsonPath });
+          content = sampleContent;
+        } catch {
+          // No sample file either
+          return null;
+        }
+      } else {
+        throw err;
+      }
+    }
+    
     const data: WorkflowsFile = JSON.parse(content);
     
     if (!data.workflows || data.workflows.length === 0) {
