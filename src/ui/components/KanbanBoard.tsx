@@ -1,9 +1,18 @@
 import type { JSX } from 'preact';
 import { useCallback, useState, useEffect, useRef } from 'preact/hooks';
-import type { Issue, RunningAgent, InputRequest, KanbanColumnState } from '../types.js';
-import { KANBAN_COLUMNS } from '../types.js';
+import type { Issue, RunningAgent, InputRequest } from '../types.js';
+import { KANBAN_COLUMNS, KanbanColumnState } from '../types.js';
 import { api } from '../api.js';
 import { KanbanColumn } from './KanbanColumn.js';
+
+// Copied from KanbanColumn.tsx since it's not exported
+const COLUMN_ICONS: Record<KanbanColumnState, { border: string; bg: string }> = {
+  'Backlog': { border: '#9b9a97', bg: 'transparent' },
+  'Todo': { border: '#9b9a97', bg: 'transparent' },
+  'In Progress': { border: '#f7b955', bg: '#f7b955' },
+  'Review': { border: '#9065e0', bg: '#9065e0' },
+  'Done': { border: '#6bc950', bg: '#6bc950' },
+};
 
 export interface QuickAddPosition {
   columnState: KanbanColumnState;
@@ -35,7 +44,18 @@ export function KanbanBoard({
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
   const [quickAddPosition, setQuickAddPosition] = useState<QuickAddPosition | null>(null);
   const [hoveredColumnState, setHoveredColumnState] = useState<KanbanColumnState | null>(null);
+  const [isMobile, setIsMobile] = useState(false);
   const boardRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.matchMedia('(max-width: 768px)').matches);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   const issuesByColumn = useCallback(
     (col: KanbanColumnState): Issue[] =>
@@ -120,7 +140,7 @@ export function KanbanBoard({
   // Track scroll position to update column indicator dots
   useEffect(() => {
     const board = boardRef.current;
-    if (!board) return;
+    if (!board || isMobile) return;
 
     const handleScroll = () => {
       const scrollLeft = board.scrollLeft;
@@ -131,7 +151,7 @@ export function KanbanBoard({
 
     board.addEventListener('scroll', handleScroll, { passive: true });
     return () => board.removeEventListener('scroll', handleScroll);
-  }, []);
+  }, [isMobile]);
 
   const handleDotClick = useCallback((index: number) => {
     const board = boardRef.current;
@@ -149,33 +169,57 @@ export function KanbanBoard({
     setHoveredColumnState(null);
   }, []);
 
+  const renderColumn = (col: KanbanColumnState) => (
+    <KanbanColumn
+      key={col}
+      columnState={col}
+      issues={issuesByColumn(col)}
+      runningAgents={runningAgents}
+      pendingInputRequests={pendingInputRequests}
+      workflowBadgeMode={workflowBadgeMode}
+      workflowColorMap={workflowColorMap}
+      selectedCardId={selectedCardId}
+      quickAddPosition={quickAddPosition?.columnState === col ? quickAddPosition : null}
+      onCardClick={handleCardSelect}
+      onCardDrop={handleCardDrop}
+      onAddCard={onAddCard}
+      onArchiveCard={handleArchiveCard}
+      onQuickAddSave={handleQuickAddSave}
+      onQuickAddCancel={handleQuickAddCancel}
+      onHoverEnter={handleColumnHoverEnter}
+      onHoverLeave={handleColumnHoverLeave}
+    />
+  );
+
   return (
     <div className="kanban-container flex-1 flex flex-col bg-[#f8f7f6] dark:bg-[#191919]">
+      <div className="mobile-tabs">
+        {KANBAN_COLUMNS.map((col, index) => {
+          const count = issuesByColumn(col).length;
+          const isActive = index === activeColumnIndex;
+          const icon = COLUMN_ICONS[col];
+          
+          return (
+            <div
+              key={col}
+              className={`mobile-tab ${isActive ? 'active' : ''}`}
+              onClick={() => setActiveColumnIndex(index)}
+              style={isActive ? { borderBottomColor: icon.border === '#9b9a97' ? 'var(--text-primary)' : icon.border } : {}}
+            >
+              <span className="mobile-tab-label">{col}</span>
+              <span className="mobile-tab-count">{count}</span>
+            </div>
+          );
+        })}
+      </div>
+
       <div 
         ref={boardRef}
         className="kanban-board p-4"
       >
-        {KANBAN_COLUMNS.map((col) => (
-          <KanbanColumn
-            key={col}
-            columnState={col}
-            issues={issuesByColumn(col)}
-            runningAgents={runningAgents}
-            pendingInputRequests={pendingInputRequests}
-            workflowBadgeMode={workflowBadgeMode}
-            workflowColorMap={workflowColorMap}
-            selectedCardId={selectedCardId}
-            quickAddPosition={quickAddPosition?.columnState === col ? quickAddPosition : null}
-            onCardClick={handleCardSelect}
-            onCardDrop={handleCardDrop}
-            onAddCard={onAddCard}
-            onArchiveCard={handleArchiveCard}
-            onQuickAddSave={handleQuickAddSave}
-            onQuickAddCancel={handleQuickAddCancel}
-            onHoverEnter={handleColumnHoverEnter}
-            onHoverLeave={handleColumnHoverLeave}
-          />
-        ))}
+        <div className="flex gap-3 min-h-[calc(100vh-200px)]">
+          {isMobile ? renderColumn(KANBAN_COLUMNS[activeColumnIndex]) : KANBAN_COLUMNS.map(renderColumn)}
+        </div>
       </div>
       
       <div className="column-indicator">
