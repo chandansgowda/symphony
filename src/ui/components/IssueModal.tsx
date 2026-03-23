@@ -116,6 +116,14 @@ export function IssueModal({ issue, onClose, onSave }: IssueModalProps) {
   const loadWorkflows = async () => {
     try {
       const data = await api.getWorkflows();
+      const currentId = workflowIdRef.current;
+      if (currentId && !data.some(w => w.id === currentId)) {
+        try {
+          const currentWorkflow = await api.getWorkflow(currentId);
+          data.push(currentWorkflow);
+        } catch (_fetchErr) {
+        }
+      }
       setWorkflows(data);
       if (!isExistingIssue && !workflowIdRef.current) {
         const defaultWorkflow = data.find(w => w.isDefault);
@@ -480,7 +488,7 @@ export function IssueModal({ issue, onClose, onSave }: IssueModalProps) {
                         className="w-full px-3 py-2 border border-gray-300 dark:border-[#3d3d3d] rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm bg-white dark:bg-[#2d2d2d] dark:text-[#e0e0e0]"
                       >
                         <option value="">(No Workflow)</option>
-                        {workflows.filter(wf => !wf.hiddenFromPicker).map(wf => (
+                        {workflows.filter(wf => !wf.hiddenFromPicker || wf.id === workflowId).map(wf => (
                           <option key={wf.id} value={wf.id}>
                             {wf.name} {wf.isDefault ? '(Default)' : ''}
                           </option>
