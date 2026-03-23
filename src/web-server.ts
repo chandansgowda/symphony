@@ -2,6 +2,7 @@ import express, { Response } from 'express';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { readFileSync, existsSync } from 'fs';
+import { spawn } from 'child_process';
 import { uniqueNamesGenerator, adjectives, animals } from 'unique-names-generator';
 import { createOpencodeClient } from '@opencode-ai/sdk/v2';
 import { Orchestrator } from './orchestrator.js';
@@ -177,7 +178,40 @@ export class WebServer {
       res.json({ status: 'restarting' });
       setImmediate(() => {
         log.info('Restart requested via API');
-        process.exit(100);
+        
+        // Spawn an independent process to restart Symphony
+        // This process will continue running after the parent exits
+        const scriptPath = join(__dirname, '..', 'scripts', 'service.sh');
+        const devScriptPath = join(__dirname, '..', '..', 'scripts', 'service.sh');
+        const actualScriptPath = existsSync(scriptPath) ? scriptPath : devScriptPath;
+        
+        // Detect dev mode by checking if we're running from src/ directory
+        const isDevMode = __dirname.endsWith('/src') || __dirname.endsWith('\\src');
+        const restartArgs = isDevMode ? ['restart', '--dev'] : ['restart'];
+        
+        if (existsSync(actualScriptPath)) {
+          log.info('Spawning restart script', { scriptPath: actualScriptPath, isDevMode });
+          
+          // Spawn detached process that will restart Symphony
+          const child = spawn('bash', [actualScriptPath, ...restartArgs], {
+            detached: true,
+            stdio: 'ignore',
+            cwd: dirname(actualScriptPath),
+          });
+          
+          // Unref so parent can exit without waiting for child
+          child.unref();
+          
+          // Give the script a moment to start before exiting
+          setTimeout(() => {
+            process.exit(0);
+          }, 500);
+        } else {
+          log.warn('Restart script not found, falling back to exit code 100', { 
+            tried: [scriptPath, devScriptPath] 
+          });
+          process.exit(100);
+        }
       });
     });
 
