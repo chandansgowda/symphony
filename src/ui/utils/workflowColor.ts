@@ -1,29 +1,35 @@
 /**
- * Generate a stable, visually distinct color from a workflow ID or name.
- * Uses a hash function to derive a hue, with fixed saturation and lightness
- * for consistent, visually pleasing colors.
+ * Pastel color palette for workflow card colors.
+ * Each entry has a hex value and a display label.
  */
 
-// Predefined color palette with good visual distinction and accessibility
-const WORKFLOW_COLORS = [
-  '#6366f1', // Indigo
-  '#8b5cf6', // Violet
-  '#a855f7', // Purple
-  '#d946ef', // Fuchsia
-  '#ec4899', // Pink
-  '#f43f5e', // Rose
-  '#ef4444', // Red
-  '#f97316', // Orange
-  '#f59e0b', // Amber
-  '#eab308', // Yellow
-  '#84cc16', // Lime
-  '#22c55e', // Green
-  '#10b981', // Emerald
-  '#14b8a6', // Teal
-  '#06b6d4', // Cyan
-  '#0ea5e9', // Sky
-  '#3b82f6', // Blue
+export interface PastelColor {
+  value: string;
+  label: string;
+}
+
+export const PASTEL_COLORS: PastelColor[] = [
+  { value: '#f9a8d4', label: 'Pink' },
+  { value: '#fca5a5', label: 'Red' },
+  { value: '#fdba74', label: 'Orange' },
+  { value: '#fde047', label: 'Yellow' },
+  { value: '#86efac', label: 'Green' },
+  { value: '#6ee7b7', label: 'Emerald' },
+  { value: '#67e8f9', label: 'Cyan' },
+  { value: '#93c5fd', label: 'Blue' },
+  { value: '#a5b4fc', label: 'Indigo' },
+  { value: '#c4b5fd', label: 'Violet' },
+  { value: '#f0abfc', label: 'Fuchsia' },
+  { value: '#d9f99d', label: 'Lime' },
 ];
+
+/**
+ * Pick a color automatically based on an index (e.g., number of existing workflows).
+ * Cycles through the pastel palette.
+ */
+export function pickAutoColor(index: number): string {
+  return PASTEL_COLORS[index % PASTEL_COLORS.length].value;
+}
 
 /**
  * Simple hash function for strings.
@@ -41,8 +47,8 @@ function hashString(str: string): number {
 
 /**
  * Get a stable color for a workflow based on its ID.
- * The same workflow ID will always return the same color.
- * 
+ * Uses the pastel palette for consistent, visually pleasing results.
+ *
  * @param workflowId - The workflow ID (or name as fallback)
  * @returns A hex color string
  */
@@ -50,15 +56,15 @@ export function getWorkflowColor(workflowId: string | undefined | null): string 
   if (!workflowId) {
     return '#9ca3af'; // Gray for no workflow
   }
-  
+
   const hash = hashString(workflowId);
-  const colorIndex = hash % WORKFLOW_COLORS.length;
-  return WORKFLOW_COLORS[colorIndex];
+  const colorIndex = hash % PASTEL_COLORS.length;
+  return PASTEL_COLORS[colorIndex].value;
 }
 
 /**
  * Get a lighter version of the workflow color for backgrounds.
- * 
+ *
  * @param workflowId - The workflow ID (or name as fallback)
  * @returns A hex color string with reduced opacity (as rgba)
  */
@@ -68,5 +74,5 @@ export function getWorkflowColorLight(workflowId: string | undefined | null): st
   const r = parseInt(color.slice(1, 3), 16);
   const g = parseInt(color.slice(3, 5), 16);
   const b = parseInt(color.slice(5, 7), 16);
-  return `rgba(${r}, ${g}, ${b}, 0.1)`;
+  return `rgba(${r}, ${g}, ${b}, 0.15)`;
 }

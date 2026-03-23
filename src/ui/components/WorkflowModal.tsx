@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'preact/hooks';
 import { Workflow, WorkflowConfig } from '../types.js';
 import { api } from '../api.js';
+import { PASTEL_COLORS, pickAutoColor } from '../utils/workflowColor.js';
 
 interface WorkflowModalProps {
   workflow?: Workflow;
@@ -22,7 +23,7 @@ export function WorkflowModal({ workflow, workflows = [], onClose, onSave }: Wor
   const [model, setModel] = useState(workflow?.config?.opencode?.model || '');
   const [secondaryModel, setSecondaryModel] = useState(workflow?.config?.opencode?.secondary_model || '');
   const [maxConcurrentAgents, setMaxConcurrentAgents] = useState<number>(workflow?.maxConcurrentAgents ?? 1);
-  const [color, setColor] = useState<string>(workflow?.color || '');
+  const [color, setColor] = useState<string>(workflow?.color || pickAutoColor(workflows.length));
   const [workspaceRoot, setWorkspaceRoot] = useState<string>(workflow?.config?.workspace?.root || '');
   const [nextWorkflowId, setNextWorkflowId] = useState<string>(workflow?.nextWorkflowId || '');
   const [hiddenFromPicker, setHiddenFromPicker] = useState<boolean>(workflow?.hiddenFromPicker ?? false);
@@ -171,28 +172,22 @@ export function WorkflowModal({ workflow, workflows = [], onClose, onSave }: Wor
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-[#a0a0a0] mb-1">Card Color</label>
-                  <div className="flex items-center gap-3">
-                    <input
-                      type="color"
-                      value={color || '#6366f1'}
-                      onInput={(e) => setColor(e.currentTarget.value)}
-                      className="h-9 w-14 p-0.5 border border-gray-300 dark:border-[#3d3d3d] rounded cursor-pointer bg-white dark:bg-[#2d2d2d]"
-                      title="Pick a color for the card's left bar"
-                    />
-                    <span className="text-sm text-gray-600 dark:text-[#a0a0a0] font-mono">{color || '(none)'}</span>
-                    {color && (
+                  <div className="flex flex-wrap gap-2 mt-1">
+                    {PASTEL_COLORS.map((c) => (
                       <button
+                        key={c.value}
                         type="button"
-                        onClick={() => setColor('')}
-                        className="text-xs text-gray-400 hover:text-gray-600 dark:hover:text-[#a0a0a0] underline"
-                      >
-                        Reset to auto
-                      </button>
-                    )}
+                        title={c.label}
+                        onClick={() => setColor(c.value)}
+                        className={`w-7 h-7 rounded-full border-2 transition-transform hover:scale-110 ${
+                          color === c.value
+                            ? 'border-gray-700 dark:border-white scale-110'
+                            : 'border-transparent'
+                        }`}
+                        style={{ backgroundColor: c.value }}
+                      />
+                    ))}
                   </div>
-                  <p className="text-xs text-gray-500 dark:text-[#808080] mt-1">
-                    Custom color for the card's left bar. Leave empty to use an auto-generated color.
-                  </p>
                 </div>
 
                 <div>
