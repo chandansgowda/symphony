@@ -215,7 +215,7 @@ export function KanbanBoard({
 
       <div 
         ref={boardRef}
-        className="kanban-board flex-1 overflow-x-auto p-5"
+        className="kanban-board p-4"
       >
         <div className="flex gap-3 min-h-[calc(100vh-200px)]">
           {isMobile ? renderColumn(KANBAN_COLUMNS[activeColumnIndex]) : KANBAN_COLUMNS.map(renderColumn)}

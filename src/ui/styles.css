@@ -130,9 +130,9 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
 .nav-link:hover { color: var(--text-primary); background: var(--bg-tertiary); }
 .nav-link.active { color: var(--text-primary); background: var(--bg-tertiary); font-weight: 500; }
 
-.kanban-container { flex: 1; overflow-x: auto; padding: 16px; background: var(--bg-primary); }
-.kanban-board { display: flex; gap: 12px; min-height: calc(100vh - 200px); }
-.kanban-column { width: 280px; min-width: 280px; background: transparent; display: flex; flex-direction: column; }
+.kanban-container { flex: 1; overflow: hidden; padding: 16px; background: var(--bg-primary); }
+.kanban-board { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; min-height: calc(100vh - 200px); height: 100%; }
+.kanban-column { width: 100%; min-width: 0; background: transparent; display: flex; flex-direction: column; }
 .kanban-column-header { display: flex; align-items: center; justify-content: space-between; padding: 8px 4px; margin-bottom: 8px; }
 .kanban-column-title { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 500; color: var(--text-primary); }
 .kanban-column-icon { width: 16px; height: 16px; border-radius: 50%; border: 2px solid; display: flex; align-items: center; justify-content: center; }
@@ -704,7 +704,7 @@ html.dark .typing-indicator { background: rgba(255,255,255,0.1); }
 
 /* Tablet breakpoint (1024px and below) */
 @media (max-width: 1024px) {
-  .kanban-column { width: 260px; min-width: 260px; }
+  .kanban-column { width: 100%; min-width: 0; }
   .chat-panel { width: 360px; }
   
   /* Slightly larger touch targets on tablets */
