@@ -485,6 +485,7 @@ export class WebServer {
                 history.push({ role, text: textParts, timestamp });
               }
             }
+            history.sort((a, b) => a.timestamp - b.timestamp);
             sessionHistories.set(session.sessionId, history);
           } catch (_err) {
             log.debug('Could not fetch messages for session', { sessionId: session.sessionId, error: (_err as Error).message });
@@ -1000,7 +1001,8 @@ export class WebServer {
       lines.push('## Sessions');
       lines.push('');
       
-      for (const session of sessions) {
+      const sortedSessions = [...sessions].sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
+      for (const session of sortedSessions) {
         const status = session.isActive ? '🟢 Active' : '⚪ Completed';
         const workflowLabel = session.workflowName || 'Default';
         const createdAt = session.createdAt.toISOString();
@@ -1035,7 +1037,9 @@ export class WebServer {
           }
         }
 
-        const sessionLogs = logs.filter(l => l.sessionId === session.sessionId);
+        const sessionLogs = logs
+          .filter(l => l.sessionId === session.sessionId)
+          .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
         if (sessionLogs.length > 0) {
           lines.push('#### Session Logs');
           lines.push('');
@@ -1056,7 +1060,8 @@ export class WebServer {
       lines.push('## Activity / Comments');
       lines.push('');
       
-      for (const comment of comments) {
+      const sortedComments = [...comments].sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
+      for (const comment of sortedComments) {
         const authorLabel = comment.author === 'agent' ? '🤖 Agent' : '👤 Human';
         const createdAt = comment.createdAt.toISOString();
         
