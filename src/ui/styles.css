@@ -646,6 +646,58 @@ html.dark .typing-indicator { background: rgba(255,255,255,0.1); }
 }
 .column-dot.active { background: var(--accent-blue); transform: scale(1.2); }
 
+/* Mobile tab navigation for kanban board */
+.mobile-tabs {
+  display: none;
+  flex-direction: row;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-primary);
+  padding: 0 4px;
+  flex-shrink: 0;
+}
+.mobile-tabs::-webkit-scrollbar { display: none; }
+.mobile-tab {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 14px;
+  cursor: pointer;
+  white-space: nowrap;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  border-bottom: 2px solid transparent;
+  transition: color 0.15s, border-color 0.15s;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  flex-shrink: 0;
+}
+.mobile-tab:active { opacity: 0.7; }
+.mobile-tab.active { color: var(--text-primary); }
+.mobile-tab-label { }
+.mobile-tab-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
+  background: var(--bg-tertiary);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  transition: background 0.15s, color 0.15s;
+}
+.mobile-tab.active .mobile-tab-count {
+  background: var(--accent-blue-bg);
+  color: var(--accent-blue);
+}
+
 /* ==========================================================================
    Responsive Breakpoints
    ========================================================================== */
@@ -678,29 +730,25 @@ html.dark .typing-indicator { background: rgba(255,255,255,0.1); }
   .mobile-nav-overlay { display: block; }
   .mobile-nav-drawer { display: block; }
   
-  /* Kanban - horizontal scroll with snap */
+  /* Kanban - tab-based navigation (no horizontal scroll) */
+  .mobile-tabs { display: flex; }
   .kanban-container { 
-    padding: 12px 0; 
-    -webkit-overflow-scrolling: touch;
-    scroll-behavior: smooth;
+    padding: 0; 
   }
   .kanban-board { 
-    padding: 0 16px 16px;
-    scroll-snap-type: x mandatory;
-    -webkit-overflow-scrolling: touch;
+    padding: 16px;
+    overflow-x: hidden;
   }
   .kanban-column { 
-    width: calc(100vw - 48px);
-    min-width: calc(100vw - 48px);
-    max-width: 400px;
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
     flex-shrink: 0;
-    scroll-snap-align: start;
-    scroll-snap-stop: always;
   }
   .kanban-column-actions { opacity: 1; }
   
-  /* Show column indicator on mobile */
-  .column-indicator { display: flex; }
+  /* Hide scroll-based column indicator (replaced by tabs) */
+  .column-indicator { display: none; }
   
   /* Cards - touch friendly */
   .kanban-card { 
@@ -866,8 +914,8 @@ html.dark .typing-indicator { background: rgba(255,255,255,0.1); }
 /* Landscape orientation on mobile */
 @media (max-width: 768px) and (orientation: landscape) {
   .kanban-column { 
-    width: 300px;
-    min-width: 300px;
+    width: 100%;
+    min-width: 0;
   }
   .chat-panel {
     width: 50%;
