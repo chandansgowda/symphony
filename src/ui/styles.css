@@ -197,7 +197,6 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
 .logs-title { font-size: 12px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
 .logs-toggle { font-size: 12px; color: var(--accent-blue); cursor: pointer; }
 .logs { background: var(--bg-code); border-radius: 6px; padding: 12px; height: 140px; overflow-y: auto; font-family: 'SF Mono', Monaco, 'Courier New', monospace; font-size: 11px; line-height: 1.6; color: var(--text-primary); }
-.logs.expanded { height: 300px; }
 .log-line { white-space: pre-wrap; word-break: break-all; color: var(--text-secondary); }
 .log-info { color: var(--log-info); }
 .log-warn { color: var(--log-warn); }
@@ -310,8 +309,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
 .logs-container { padding: 16px; overflow-y: auto; flex: 1; display: flex; flex-direction: column; }
 .logs-container .logs-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
 .logs-container .logs-title { font-size: 16px; font-weight: 600; color: var(--text-primary); }
-.logs-container .logs { flex: 1; height: auto; min-height: 400px; }
-.logs-container .logs.expanded { min-height: 600px; }
+.logs-container .logs { flex: 1; height: auto; min-height: 400px; overflow-y: auto; }
 
 .workflow-prompt-container { position: relative; }
 .workflow-prompt-container textarea { font-family: 'SF Mono', Monaco, 'Courier New', monospace; font-size: 12px; min-height: 200px; line-height: 1.5; }
