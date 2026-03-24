@@ -4,6 +4,16 @@ import { Logger } from './logger.js';
 
 const log = new Logger('local-config');
 
+export type TelegramNotificationLevel = 'all' | 'telegram_only';
+
+export interface TelegramConfig {
+  enabled?: boolean;
+  botToken?: string | null;
+  allowlist?: string | null;
+  cardNotificationLevel?: TelegramNotificationLevel;
+  commentNotificationLevel?: TelegramNotificationLevel;
+}
+
 export interface LocalConfig {
   privateWorkflowsDir?: string | null;
   privateWorkflowsEnabled?: boolean;
@@ -11,6 +21,7 @@ export interface LocalConfig {
   theme?: 'system' | 'light' | 'dark';
   safeExecute?: boolean;
   workflowsRootDir?: string | null;
+  telegram?: TelegramConfig | null;
 }
 
 const DEFAULT_CONFIG: LocalConfig = {
@@ -80,6 +91,7 @@ export class LocalConfigStore {
       theme: updated.theme,
       safeExecute: updated.safeExecute,
       workflowsRootDir: updated.workflowsRootDir,
+      telegramEnabled: updated.telegram?.enabled,
     });
     
     return updated;

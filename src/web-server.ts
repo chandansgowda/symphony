@@ -798,9 +798,16 @@ export class WebServer {
 
     this.app.put('/api/settings', async (req, res) => {
       try {
-        const { privateWorkflowsDir, privateWorkflowsEnabled, workflowBadgeMode, theme, safeExecute } = req.body;
+        const { privateWorkflowsDir, privateWorkflowsEnabled, workflowBadgeMode, theme, safeExecute, telegram } = req.body;
         
-        const updates: { privateWorkflowsDir?: string | null; privateWorkflowsEnabled?: boolean; workflowBadgeMode?: 'border'; theme?: 'system' | 'light' | 'dark'; safeExecute?: boolean } = {};
+        const updates: {
+          privateWorkflowsDir?: string | null;
+          privateWorkflowsEnabled?: boolean;
+          workflowBadgeMode?: 'border';
+          theme?: 'system' | 'light' | 'dark';
+          safeExecute?: boolean;
+          telegram?: import('./local-config-store.js').TelegramConfig | null;
+        } = {};
         
         if (privateWorkflowsDir !== undefined) {
           updates.privateWorkflowsDir = privateWorkflowsDir;
@@ -816,6 +823,9 @@ export class WebServer {
         }
         if (safeExecute !== undefined) {
           updates.safeExecute = safeExecute;
+        }
+        if (telegram !== undefined) {
+          updates.telegram = telegram;
         }
         
         const config = await this.localConfigStore.updateConfig(updates);

@@ -20,6 +20,7 @@ import { WorkflowConfig, OPENCODE_SERVER_PORT } from './types.js';
 import { initLogBuffer } from './log-buffer.js';
 import { ConnectorManager } from './connector-manager.js';
 import { KanbanConnector } from './kanban-connector.js';
+import { TelegramConnector } from './telegram-connector.js';
 
 const log = new Logger('cli');
 
@@ -367,6 +368,9 @@ async function main(): Promise<void> {
     });
     connectorManager.register(kanbanConnector);
   }
+
+  const telegramConnector = new TelegramConnector({ localConfigStore });
+  connectorManager.register(telegramConnector);
 
   await connectorManager.startAll();
 

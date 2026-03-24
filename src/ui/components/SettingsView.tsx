@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'preact/hooks';
-import type { LocalSettings } from '../types.js';
+import type { LocalSettings, TelegramNotificationLevel } from '../types.js';
 import { api } from '../api.js';
 
 export function SettingsView() {
@@ -9,6 +9,10 @@ export function SettingsView() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [dirInput, setDirInput] = useState('');
+  const [tgBotToken, setTgBotToken] = useState('');
+  const [tgAllowlist, setTgAllowlist] = useState('');
+  const [tgCardLevel, setTgCardLevel] = useState<TelegramNotificationLevel>('all');
+  const [tgCommentLevel, setTgCommentLevel] = useState<TelegramNotificationLevel>('all');
 
   const loadSettings = useCallback(async () => {
     try {
@@ -17,6 +21,10 @@ export function SettingsView() {
       const data = await api.getSettings();
       setSettings(data);
       setDirInput(data.privateWorkflowsDir || '');
+      setTgBotToken(data.telegram?.botToken || '');
+      setTgAllowlist(data.telegram?.allowlist || '');
+      setTgCardLevel(data.telegram?.cardNotificationLevel ?? 'all');
+      setTgCommentLevel(data.telegram?.commentNotificationLevel ?? 'all');
     } catch (err) {
       setError((err as Error).message);
     } finally {
@@ -40,6 +48,57 @@ export function SettingsView() {
       setSettings(updated);
       setSuccess('Settings saved successfully. Refresh workflows to see changes.');
       setTimeout(() => setSuccess(null), 5000);
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleSaveTelegram = async () => {
+    try {
+      setSaving(true);
+      setError(null);
+      setSuccess(null);
+      const updated = await api.updateSettings({
+        ...settings,
+        telegram: {
+          enabled: settings.telegram?.enabled ?? false,
+          botToken: tgBotToken.trim() || null,
+          allowlist: tgAllowlist.trim() || null,
+          cardNotificationLevel: tgCardLevel,
+          commentNotificationLevel: tgCommentLevel,
+        },
+      });
+      setSettings(updated);
+      setSuccess('Telegram settings saved. Restart Symphony to apply.');
+      setTimeout(() => setSuccess(null), 5000);
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleToggleTelegram = async (enabled: boolean) => {
+    try {
+      setSaving(true);
+      setError(null);
+      setSuccess(null);
+      const updated = await api.updateSettings({
+        ...settings,
+        telegram: {
+          ...settings.telegram,
+          enabled,
+          botToken: tgBotToken.trim() || null,
+          allowlist: tgAllowlist.trim() || null,
+          cardNotificationLevel: tgCardLevel,
+          commentNotificationLevel: tgCommentLevel,
+        },
+      });
+      setSettings(updated);
+      setSuccess(enabled ? 'Telegram enabled. Restart Symphony to apply.' : 'Telegram disabled. Restart Symphony to apply.');
+      setTimeout(() => setSuccess(null), 4000);
     } catch (err) {
       setError((err as Error).message);
     } finally {
@@ -154,7 +213,7 @@ export function SettingsView() {
         </p>
       </div>
 
-      <div className="rounded-lg p-6" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-primary)', boxShadow: 'var(--shadow-sm)' }}>
+      <div className="rounded-lg p-6 mb-6" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-primary)', boxShadow: 'var(--shadow-sm)' }}>
         <h3 className="text-lg font-semibold mb-4" style={{ color: 'var(--text-primary)' }}>Private Workflows</h3>
         <p className="text-sm mb-4" style={{ color: 'var(--text-secondary)' }}>
           Load workflows from a private directory that is not checked into git.
@@ -219,6 +278,147 @@ export function SettingsView() {
             >
               {saving ? 'Saving...' : 'Save Settings'}
             </button>
+          </div>
+        </div>
+      </div>
+
+      <div className="rounded-lg p-6" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-primary)', boxShadow: 'var(--shadow-sm)' }}>
+        <h3 className="text-lg font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>Channels</h3>
+        <p className="text-sm mb-6" style={{ color: 'var(--text-secondary)' }}>
+          Connect Symphony to external channels to receive instructions and send updates.
+        </p>
+
+        <div className="space-y-6">
+          <div className="rounded-md p-4" style={{ background: 'var(--bg-tertiary)', border: '1px solid var(--border-primary)' }}>
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h4 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>Telegram</h4>
+                <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                  Receive cards from Telegram messages and send status updates back.
+                </p>
+              </div>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={settings.telegram?.enabled ?? false}
+                onClick={() => handleToggleTelegram(!(settings.telegram?.enabled ?? false))}
+                disabled={saving}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
+                  settings.telegram?.enabled ? 'bg-blue-600' : ''
+                } ${saving ? 'opacity-50 cursor-not-allowed' : ''}`}
+                style={!settings.telegram?.enabled ? { background: 'var(--bg-secondary)' } : undefined}
+              >
+                <span
+                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                    settings.telegram?.enabled ? 'translate-x-6' : 'translate-x-1'
+                  }`}
+                />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label htmlFor="tgBotToken" className="block text-sm font-medium mb-1" style={{ color: 'var(--text-primary)' }}>
+                  Bot Token
+                </label>
+                <input
+                  type="password"
+                  id="tgBotToken"
+                  value={tgBotToken}
+                  onChange={(e) => setTgBotToken((e.target as HTMLInputElement).value)}
+                  placeholder="123456789:ABCDEFghijklmNOPQRST..."
+                  disabled={saving}
+                  className="w-full px-3 py-2 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:cursor-not-allowed"
+                  style={{
+                    background: 'var(--bg-input)',
+                    border: '1px solid var(--border-primary)',
+                    color: 'var(--text-primary)',
+                  }}
+                />
+                <p className="mt-1 text-xs" style={{ color: 'var(--text-muted)' }}>
+                  Get a token from <span style={{ color: 'var(--accent-blue)' }}>@BotFather</span> on Telegram. Stored locally in <code className="px-1 rounded" style={{ background: 'var(--bg-secondary)' }}>local-config.json</code>.
+                </p>
+              </div>
+
+              <div>
+                <label htmlFor="tgAllowlist" className="block text-sm font-medium mb-1" style={{ color: 'var(--text-primary)' }}>
+                  Allowlist
+                </label>
+                <input
+                  type="text"
+                  id="tgAllowlist"
+                  value={tgAllowlist}
+                  onChange={(e) => setTgAllowlist((e.target as HTMLInputElement).value)}
+                  placeholder="@username, 123456789, -100987654321"
+                  disabled={saving}
+                  className="w-full px-3 py-2 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:cursor-not-allowed"
+                  style={{
+                    background: 'var(--bg-input)',
+                    border: '1px solid var(--border-primary)',
+                    color: 'var(--text-primary)',
+                  }}
+                />
+                <p className="mt-1 text-xs" style={{ color: 'var(--text-muted)' }}>
+                  Comma-separated list of allowed Telegram usernames (<code className="px-1 rounded" style={{ background: 'var(--bg-secondary)' }}>@user</code>), user IDs, or chat IDs.
+                  Outbound notifications are sent to numeric chat IDs in this list. Leave empty to allow all.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label htmlFor="tgCardLevel" className="block text-sm font-medium mb-1" style={{ color: 'var(--text-primary)' }}>
+                    Card Notifications
+                  </label>
+                  <select
+                    id="tgCardLevel"
+                    value={tgCardLevel}
+                    onChange={(e) => setTgCardLevel((e.target as HTMLSelectElement).value as TelegramNotificationLevel)}
+                    disabled={saving}
+                    className="w-full px-3 py-2 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:cursor-not-allowed"
+                    style={{
+                      background: 'var(--bg-input)',
+                      border: '1px solid var(--border-primary)',
+                      color: 'var(--text-primary)',
+                    }}
+                  >
+                    <option value="all">All cards</option>
+                    <option value="telegram_only">Telegram-initiated only</option>
+                  </select>
+                </div>
+                <div>
+                  <label htmlFor="tgCommentLevel" className="block text-sm font-medium mb-1" style={{ color: 'var(--text-primary)' }}>
+                    Comment Notifications
+                  </label>
+                  <select
+                    id="tgCommentLevel"
+                    value={tgCommentLevel}
+                    onChange={(e) => setTgCommentLevel((e.target as HTMLSelectElement).value as TelegramNotificationLevel)}
+                    disabled={saving}
+                    className="w-full px-3 py-2 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:cursor-not-allowed"
+                    style={{
+                      background: 'var(--bg-input)',
+                      border: '1px solid var(--border-primary)',
+                      color: 'var(--text-primary)',
+                    }}
+                  >
+                    <option value="all">All cards</option>
+                    <option value="telegram_only">Telegram-initiated only</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="pt-2" style={{ borderTop: '1px solid var(--border-primary)' }}>
+                <button
+                  onClick={handleSaveTelegram}
+                  disabled={saving}
+                  className={`px-4 py-2 bg-blue-600 text-white rounded-md font-medium transition-colors ${
+                    saving ? 'opacity-50 cursor-not-allowed' : 'hover:bg-blue-700'
+                  }`}
+                >
+                  {saving ? 'Saving...' : 'Save Telegram Settings'}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       </div>

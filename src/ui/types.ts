@@ -122,6 +122,16 @@ export type ViewType = 'issues' | 'workflows' | 'logs' | 'settings' | 'archive';
 
 export type ThemeMode = 'system' | 'light' | 'dark';
 
+export type TelegramNotificationLevel = 'all' | 'telegram_only';
+
+export interface TelegramSettings {
+  enabled?: boolean;
+  botToken?: string | null;
+  allowlist?: string | null;
+  cardNotificationLevel?: TelegramNotificationLevel;
+  commentNotificationLevel?: TelegramNotificationLevel;
+}
+
 export interface LocalSettings {
   privateWorkflowsDir?: string | null;
   privateWorkflowsEnabled?: boolean;
@@ -129,6 +139,7 @@ export interface LocalSettings {
   theme?: ThemeMode;
   safeExecute?: boolean;
   workflowsRootDir?: string | null;
+  telegram?: TelegramSettings | null;
 }
 
 export type KanbanColumnState = 'Backlog' | 'Todo' | 'In Progress' | 'Review' | 'Done';
